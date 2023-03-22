@@ -82,6 +82,10 @@ app.use(bodyParser.urlencoded({
   extended: true
 }));
 
+app.post('/', async(req, res) => {
+  res.send('Server working at port:' + port);
+})
+
 // POST endpoint for registration
 app.post('/register', async (req, res) => {
   try {
