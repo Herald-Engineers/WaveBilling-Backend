@@ -2,7 +2,16 @@ require('dotenv').config()
 const jwt = require('jsonwebtoken');
 const userModel = require('../models/userModel');
 const organizationModel = require('../models/organizationModel');
+const requestAccountModel = require('../models/requestAccountModel');
 const bcrypt = require('bcrypt');
+
+// Cloudinary configuration 
+const cloudinary = require('cloudinary').v2;
+cloudinary.config({
+  cloud_name: "duwbog7sb",
+  api_key: "621392192137183",
+  api_secret: "eY9L7xmwKu7uWftoy-8OGhuT0pQ"
+});
 
 const register = async (req, res) => {
     const {companyName, addressDistrict, addressProvince, addressWardNum, addressMunicipality, addressTole, contactNum, username, password} = req.body;
@@ -86,4 +95,50 @@ const login = async (req, res) => {
     }
 }
 
-module.exports = {login, register};
+const requestAccount = async (req, res) => {    
+    const {firstName, lastName, houseNo, tole, wardNo, municipality, tel1, tel2, email, nationality, citizenshipNo, passportNo, supName, supTelephone, supEmail } = req.body;
+    const {citizenshipDoc, landOwnershipDoc} = req.files;
+
+    // If request is already made
+    const alreadyMade = await requestAccountModel.findOne({ houseNo, citizenshipNo });
+    console.log(alreadyMade);
+    if(alreadyMade) {
+        return res.status(409).json({message: 'Request already made'});
+    }
+
+    // If account already exits
+    // to-do
+    
+    // Upload the docs to cloudinary and get the link
+    const citizenshipUrl = await cloudinary.uploader.upload(citizenshipDoc.tempFilePath, {public_id: `GuestUserDocs/${citizenshipNo}`})
+    .then((result) => result.url).catch(() => res.status(500).json({message: "Error occurred while uploading document"}));
+    const landOwnershipUrl = await cloudinary.uploader.upload(landOwnershipDoc.tempFilePath, {public_id: `GuestUserDocs/${houseNo}_${citizenshipNo}`})
+    .then((result) => result.url).catch(() => res.status(500).json({message: "Error occurred while uploading document"}));
+
+    try {
+        const requestSent = await requestAccountModel.create({
+            firstName,
+            lastName,
+            houseNo,
+            tole,
+            wardNo,
+            municipality,
+            tel1,
+            tel2,
+            email,
+            nationality,
+            citizenshipNo,
+            passportNo,
+            supName,
+            supTelephone,
+            supEmail,
+            citizenshipDoc: citizenshipUrl,
+            landOwnershipDoc: landOwnershipUrl
+        })
+        res.status(200).json({message: "Request made successfully"});
+    } catch(err) {
+        res.status(500).json({message: "Server error"});
+    }
+}
+
+module.exports = {login, register, requestAccount};
