@@ -3,6 +3,8 @@ const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const app = express();
 const port = process.env.PORT || 3000;
+const fileUpload = require('express-fileupload');
+const cors = require('cors');
 
 const config = require("./config");
 const userRouter = require('./routes/userRouter');
@@ -18,6 +20,10 @@ db.once('open', function() {
   console.log("Connected to MongoDB");
 });
 
+app.use(cors({origin: '*'}));
+app.use(fileUpload({
+  useTempFiles: true
+}));
 // Use body-parser middleware to parse JSON requests
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
