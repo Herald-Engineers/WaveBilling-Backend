@@ -1,16 +1,16 @@
+require('dotenv').config()
 const express = require('express');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT;
 const fileUpload = require('express-fileupload');
 const cors = require('cors');
 
-const config = require("./config");
 const userRouter = require('./routes/userRouter');
 
 // MongoDB connection
-mongoose.connect(config.database, {
+mongoose.connect(process.env.DATABASE_URL, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 });
@@ -29,7 +29,6 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
   extended: true
 }));
-
 // User userRouter to route the user related endpoints
 app.use('/', userRouter);
 

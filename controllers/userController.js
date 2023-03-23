@@ -8,9 +8,9 @@ const bcrypt = require('bcrypt');
 // Cloudinary configuration 
 const cloudinary = require('cloudinary').v2;
 cloudinary.config({
-  cloud_name: "duwbog7sb",
-  api_key: "621392192137183",
-  api_secret: "eY9L7xmwKu7uWftoy-8OGhuT0pQ"
+  cloud_name: process.env.CLOUDINARY_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
 const register = async (req, res) => {
