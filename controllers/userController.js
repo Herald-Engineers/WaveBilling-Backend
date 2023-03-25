@@ -15,7 +15,7 @@ cloudinary.config({
 
 const register = async (req, res) => {
     const {companyName, addressDistrict, addressProvince, addressWardNum, addressMunicipality, addressTole, contactNum, username, password} = req.body;
-    
+
     try {
        // Check if organization already exists
         const alreadyExists = await organizationModel.findOne({
@@ -95,13 +95,13 @@ const login = async (req, res) => {
     }
 }
 
-const requestAccount = async (req, res) => {    
+const requestAccount = async (req, res) => {   
+    console.log('I am inside request account controller'); 
     const {firstName, lastName, houseNo, tole, wardNo, municipality, tel1, tel2, email, nationality, citizenshipNo, passportNo, supName, supTelephone, supEmail } = req.body;
     const {citizenshipDoc, landOwnershipDoc} = req.files;
 
     // If request is already made
     const alreadyMade = await requestAccountModel.findOne({ houseNo, citizenshipNo });
-    console.log(alreadyMade);
     if(alreadyMade) {
         return res.status(409).json({message: 'Request already made'});
     }
@@ -116,6 +116,7 @@ const requestAccount = async (req, res) => {
     .then((result) => result.url).catch(() => res.status(500).json({message: "Error occurred while uploading document"}));
 
     try {
+        console.log('I am inside request account try block')
         const requestSent = await requestAccountModel.create({
             firstName,
             lastName,
@@ -135,6 +136,7 @@ const requestAccount = async (req, res) => {
             citizenshipDoc: citizenshipUrl,
             landOwnershipDoc: landOwnershipUrl
         })
+        console.log(requestSent);
         res.status(200).json({message: "Request made successfully"});
     } catch(err) {
         res.status(500).json({message: "Server error"});
