@@ -27,7 +27,7 @@ const register = async (req, res) => {
             addressMunicipality
         });
         if (alreadyExists) {
-            return res.status(409).json({ error: 'Organization already exists' });
+            return res.status(409).json({ message: 'Organization already exists' });
         }
 
         // Check if username is taken
@@ -35,7 +35,7 @@ const register = async (req, res) => {
             username
         });
         if (usernameTaken) {
-            return res.status(409).json({ error: 'Username already taken' });
+            return res.status(409).json({ message: 'Username already taken' });
         }
 
         // Save organization details to MongoDB
@@ -89,7 +89,7 @@ const login = async (req, res) => {
     
         // Create token and send response
         const token = jwt.sign({username: user.username, id: user._id}, process.env.ACCESS_TOKEN_SECRET);
-        res.status(200).json({username: user.username, role: user.userRole, token});
+        res.status(200).json({fullName: user.username, role: user.userRole, token});
     } catch(err) {
         console.log(err);
         res.status(500).json({message: 'Server Error'});
@@ -98,11 +98,12 @@ const login = async (req, res) => {
 
 const requestAccount = async (req, res) => {   
     console.log('I am inside request account controller'); 
-    const {firstName, lastName, houseNo, tole, wardNo, municipality, tel1, tel2, email, nationality, citizenshipNo, passportNo, supName, supTelephone, supEmail } = req.body;
-    const {citizenshipDoc, landOwnershipDoc} = req.files;
+    const { firstName, middleName, lastName, houseNo, province, municipality, wardNo, tole, tel1, tel2, email, nationality, citizenshipNo, issueDate } = req.body;
+    const { citizenshipDoc, landOwnershipDoc } = req.files;
 
-    console.log(citizenshipDoc);
-    console.log(landOwnershipDoc);
+    if(firstName == null || lastName == null || houseNo == null || province == null || municipality == null || wardNo == null || tole == null || tel2 == null || email == null || nationality == null || citizenshipNo == null || issueDate == null) {
+        return res.status(422).json({message: 'Please fill all the required fields'});
+    }
 
     // If request is already made
     const alreadyMade = await requestAccountModel.findOne({ houseNo, citizenshipNo });
@@ -120,26 +121,25 @@ const requestAccount = async (req, res) => {
     .then((result) => result.url).catch(() => res.status(500).json({message: "Error occurred while uploading document"}));
 
     try {
-        console.log('I am inside request account try block')
+        console.log('I am inside request account try block');
         const requestSent = await requestAccountModel.create({
             firstName,
+            middleName,
             lastName,
             houseNo,
-            tole,
-            wardNo,
+            province,
             municipality,
+            wardNo,
+            tole,
             tel1,
             tel2,
             email,
             nationality,
             citizenshipNo,
-            passportNo,
-            supName,
-            supTelephone,
-            supEmail,
+            issueDate,
             citizenshipDoc: citizenshipUrl,
             landOwnershipDoc: landOwnershipUrl
-        })
+        });
         console.log(requestSent);
         res.status(200).json({message: "Request made successfully"});
     } catch(err) {
@@ -174,7 +174,6 @@ const resetPassword = async (req, res) => {
         return res.status(500).json({message: 'Failed'});
     })
 
-    // https://youtu.be/lBRnLXwjLw0?t=861
 }
 
 module.exports = {login, register, requestAccount, resetPassword};

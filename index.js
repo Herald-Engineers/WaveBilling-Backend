@@ -20,8 +20,7 @@ db.once('open', function() {
   console.log("Connected to MongoDB");
 });
 
-app.use(cors({origin: '*',  methods: ['GET', 'POST'],
-allowedHeaders: ['Content-Type', 'Authorization']}));
+app.use(cors({origin: '*'}));
 
 app.use(fileUpload({
   useTempFiles: true

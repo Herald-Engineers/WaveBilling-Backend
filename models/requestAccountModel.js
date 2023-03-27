@@ -5,6 +5,7 @@ const requestAccountSchema = new mongoose.Schema({
       type: String,
       required: true
     },
+    middleName: String,
     lastName: {
       type: String,
       required: true
@@ -14,11 +15,7 @@ const requestAccountSchema = new mongoose.Schema({
       type: String,
       required: true
     },
-    tole: {
-      type: String,
-      required: true
-    },
-    wardNo: {
+    province: {
       type: String,
       required: true
     },
@@ -26,16 +23,26 @@ const requestAccountSchema = new mongoose.Schema({
       type: String,
       required: true
     },
+    wardNo: {
+      type: String,
+      required: true
+    },
+    tole: {
+      type: String,
+      required: true
+    },
 
-    tel1: {
+    tel1: String,
+    tel2: {
         type: String,
         required: true
     },
-    tel2: String,
+
     email: {
         type: String,
         required: true
     },
+
     nationality: {
         type: String,
         required: true
@@ -44,10 +51,11 @@ const requestAccountSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    passportNo: String,
-    supName: String,
-    supTelephone: String,
-    supEmail: String,
+    issueDate: {
+      type: String,
+      required: true
+    },
+
     citizenshipDoc: {
         type: String,
         required: true
