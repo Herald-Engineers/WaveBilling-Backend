@@ -4,6 +4,7 @@ const userModel = require('../models/userModel');
 const organizationModel = require('../models/organizationModel');
 const requestAccountModel = require('../models/requestAccountModel');
 const bcrypt = require('bcrypt');
+const nodemailer = require('nodemailer');
 
 // Cloudinary configuration 
 const cloudinary = require('cloudinary').v2;
@@ -100,6 +101,9 @@ const requestAccount = async (req, res) => {
     const {firstName, lastName, houseNo, tole, wardNo, municipality, tel1, tel2, email, nationality, citizenshipNo, passportNo, supName, supTelephone, supEmail } = req.body;
     const {citizenshipDoc, landOwnershipDoc} = req.files;
 
+    console.log(citizenshipDoc);
+    console.log(landOwnershipDoc);
+
     // If request is already made
     const alreadyMade = await requestAccountModel.findOne({ houseNo, citizenshipNo });
     if(alreadyMade) {
@@ -143,4 +147,34 @@ const requestAccount = async (req, res) => {
     }
 }
 
-module.exports = {login, register, requestAccount};
+const resetPassword = async (req, res) => {   
+    let testAccount = await nodemailer.createTestAccount();
+    let transporter = nodemailer.createTransport({
+        host: "smtp.ethereal.email",
+        port: 587,
+        secure: false, // true for 465, false for other ports
+        auth: {
+          user: testAccount.user, // generated ethereal user
+          pass: testAccount.pass, // generated ethereal password
+        }
+    });
+
+    // send mail with defined transport object
+    let info = {
+        from: '"WaveBilling" <WaveBilling@gmail.com>', // sender address
+        to: "sabinhero88@gmail.com", // list of receivers
+        subject: "App working correctly", // Subject line
+        text: "The backend application under reset-password endpoint is working properly." // plain text body
+    }
+
+    transporter.sendMail(info).then(() => {
+        return res.status(201).json({message: 'Mail sent successfully'});
+    }).catch((err) => {
+        console.log(err);
+        return res.status(500).json({message: 'Failed'});
+    })
+
+    // https://youtu.be/lBRnLXwjLw0?t=861
+}
+
+module.exports = {login, register, requestAccount, resetPassword};
