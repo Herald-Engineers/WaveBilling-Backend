@@ -15,57 +15,46 @@ cloudinary.config({
 });
 
 const register = async (req, res) => {
-    const {companyName, addressDistrict, addressProvince, addressWardNum, addressMunicipality, addressTole, contactNum, username, password} = req.body;
+    const { companyName, address, email1, fullName, email2, jobTitle, paymentMethod, bankName, accountNum, billingCycle, paymentDueDate, estimatedWaterUsage, noOfMeters } = req.body;
 
     try {
        // Check if organization already exists
         const alreadyExists = await organizationModel.findOne({
-            companyName,
-            addressDistrict,
-            addressProvince,
-            addressWardNum,
-            addressMunicipality
+            companyName
         });
         if (alreadyExists) {
             return res.status(409).json({ message: 'Organization already exists' });
         }
 
         // Check if username is taken
-        const usernameTaken = await userModel.findOne({
-            username
-        });
-        if (usernameTaken) {
-            return res.status(409).json({ message: 'Username already taken' });
-        }
+        // const usernameTaken = await userModel.findOne({
+        //     username
+        // });
+        // if (usernameTaken) {
+        //     return res.status(409).json({ message: 'Username already taken' });
+        // }
 
         // Save organization details to MongoDB
         const organizationCreated = await organizationModel.create({
-            companyName,
-            addressProvince,
-            addressDistrict,
-            addressMunicipality,
-            addressWardNum,
-            addressTole,
-            contactNum
+            companyName, address, email1, fullName, email2, jobTitle, paymentMethod, bankName, accountNum, billingCycle, paymentDueDate, estimatedWaterUsage, noOfMeters
         })
 
         // Preparing the orgId and hashed password for user
-        let orgId = await organizationModel.findOne({ contactNum });
+        // let orgId = await organizationModel.findOne({ contactNum });
         // orgId = orgId._id;
-        const hashedPassword = await bcrypt.hash(password, 10);
+        // const hashedPassword = await bcrypt.hash(password, 10);
 
         // Save user details to MongoDB
-        const userCreated = await userModel.create({
-            username,
-            password: hashedPassword,
-            distributorId: orgId._id
-        })
+        // const userCreated = await userModel.create({
+        //     username,
+        //     password: hashedPassword,
+        //     distributorId: orgId._id
+        // })
 
         // Create token and send response
-        const token = jwt.sign({username: userCreated.username, id: userCreated._id}, process.env.ACCESS_TOKEN_SECRET);
-        res.status(201).json({username: userCreated.username, role: userCreated.userRole, token});
+        // const token = jwt.sign({username: userCreated.username, id: userCreated._id}, process.env.ACCESS_TOKEN_SECRET);
+        // res.status(201).json({username: userCreated.username, role: userCreated.userRole, token});
     } catch(err) {
-        console.log(process.env.ACCESS_TOKEN_SECRET);
         console.log(err);
         res.status(500).json({message: 'Server Error'});
     }
@@ -89,7 +78,7 @@ const login = async (req, res) => {
     
         // Create token and send response
         const token = jwt.sign({username: user.username, id: user._id}, process.env.ACCESS_TOKEN_SECRET);
-        res.status(200).json({fullName: user.username, role: user.userRole, token});
+        res.status(200).json({username: user.username, role: user.userRole, token});
     } catch(err) {
         console.log(err);
         res.status(500).json({message: 'Server Error'});
@@ -147,31 +136,32 @@ const requestAccount = async (req, res) => {
     }
 }
 
-const resetPassword = async (req, res) => {   
-    let testAccount = await nodemailer.createTestAccount();
-    let transporter = nodemailer.createTransport({
-        host: "smtp.ethereal.email",
-        port: 587,
-        secure: false, // true for 465, false for other ports
-        auth: {
-          user: testAccount.user, // generated ethereal user
-          pass: testAccount.pass, // generated ethereal password
-        }
+const resetPassword = async (req, res) => {
+    const userName = req.body.userName;
+
+    const nodemailer = require('nodemailer');
+    const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.GMAIL_EMAIL,
+        pass: process.env.GMAIL_PASSWORD
+    }
     });
 
-    // send mail with defined transport object
-    let info = {
-        from: '"WaveBilling" <WaveBilling@gmail.com>', // sender address
-        to: "sabinhero88@gmail.com", // list of receivers
-        subject: "App working correctly", // Subject line
-        text: "The backend application under reset-password endpoint is working properly." // plain text body
-    }
+    const otp = Math.floor(10000 + Math.random() * 90000);
 
-    transporter.sendMail(info).then(() => {
-        return res.status(201).json({message: 'Mail sent successfully'});
-    }).catch((err) => {
-        console.log(err);
-        return res.status(500).json({message: 'Failed'});
+    const mailData = {
+    to: 'sabinhero88@gmail.com',
+    subject: 'Sabin Mail Sender Alert',
+    text: 'Hi, I am sending email. Your app is perfectly working'
+    }
+    transporter.sendMail(mailData, (err, info) => {
+    if(err) {
+        console.log('Error occured: ' + err);
+        return;
+    }
+    console.log('Successful ' + info.response);
+    return;
     })
 
 }

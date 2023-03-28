@@ -4,30 +4,55 @@ const organizationSchema = new mongoose.Schema({
       type: String,
       required: true
     },
-    addressDistrict: {
+    address: {
       type: String,
       required: true
     },
-    addressProvince: {
+    email1: {
       type: String,
       required: true
     },
-    addressWardNum: {
+    fullName: {
       type: String,
       required: true
     },
-    addressMunicipality: {
+    email2: {
       type: String,
       required: true
     },
-    addressTole: {
+    jobTitle: {
       type: String,
       required: true
     },
-    contactNum: {
+    paymentMethod: {
+      type: String,
+      required: true
+    },
+    bankName: {
+      type: String,
+      required: true
+    },
+    accountNum: {
+      type: String,
+      required: true
+    },
+    billingCycle: {
+      type: String,
+      required: true
+    },
+    paymentDueDate: {
+      type: String,
+      required: true
+    },
+    estimatedWaterUsage: {
+      type: String,
+      required: true
+    },
+    noOfMeters: {
       type: String,
       required: true
     }
+
 });
 
 module.exports = mongoose.model('Organization', organizationSchema);
