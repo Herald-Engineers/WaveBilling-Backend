@@ -8,6 +8,7 @@ const fileUpload = require('express-fileupload');
 const cors = require('cors');
 
 const userRouter = require('./routes/userRouter');
+const adminRouter = require('./routes/adminRouter');
 
 // MongoDB connection
 mongoose.connect(process.env.DATABASE_URL, {
@@ -32,6 +33,7 @@ app.use(bodyParser.urlencoded({
 }));
 // User userRouter to route the user related endpoints
 app.use('/', userRouter);
+app.use('/admin', adminRouter);
 
 // Start server
 app.listen(port, () => {
