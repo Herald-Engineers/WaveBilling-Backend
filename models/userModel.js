@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
-    username: {
+    userId: {
       type: String,
       required: true
     },
@@ -11,11 +11,7 @@ const userSchema = new mongoose.Schema({
     },
     userRole: {
       type: String,
-      default: 'admin'
-    },
-    distributorId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Organization'
+      required: true
     }
 });
 
