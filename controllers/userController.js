@@ -65,10 +65,13 @@ const login = async (req, res) => {
     if(req.body == null) {
         return res.status(422).json({message: 'req.body is null'});
     }
-    const {userId, password} = req.body;
+    const {username, password} = req.body;
+    if(!username || !password) {
+        return res.status(422).json({message: 'Please fill all the fields'});
+    }
     try {
         // Check if user exists in server
-        const user = await userModel.findOne({ userId });
+        const user = await userModel.findOne({ userId: username });
         if (!user) {
           return res.status(404).json({ message: "No user found" });
         }
