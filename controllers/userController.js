@@ -62,6 +62,9 @@ const register = async (req, res) => {
 }
 
 const login = async (req, res) => {
+    if(req.body == null) {
+        return res.status(422).json({message: 'req.body is null'});
+    }
     const {userId, password} = req.body;
     try {
         // Check if user exists in server
@@ -77,8 +80,8 @@ const login = async (req, res) => {
         }
     
         // Create token and send response
-        const token = jwt.sign({userId: user.username, id: user._id}, process.env.ACCESS_TOKEN_SECRET);
-        res.status(200).json({userId: user.username, role: user.userRole, token});
+        const token = jwt.sign({userId: user.userId, id: user._id}, process.env.ACCESS_TOKEN_SECRET);
+        res.status(200).json({userId: user.userId, role: user.userRole, token});
     } catch(err) {
         console.log(err);
         res.status(500).json({message: 'Server Error'});
