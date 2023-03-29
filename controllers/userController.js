@@ -83,7 +83,7 @@ const login = async (req, res) => {
         }
     
         // Create token and send response
-        const token = jwt.sign({userId: user.userId, id: user._id}, process.env.ACCESS_TOKEN_SECRET);
+        const token = jwt.sign({userId: user.userId, userRole: user.userRole, id: user._id}, process.env.ACCESS_TOKEN_SECRET);
         res.status(200).json({userId: user.userId, role: user.userRole, token});
     } catch(err) {
         console.log(err);
