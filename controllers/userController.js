@@ -62,10 +62,10 @@ const register = async (req, res) => {
 }
 
 const login = async (req, res) => {
-    const {username, password} = req.body;
+    const {userId, password} = req.body;
     try {
         // Check if user exists in server
-        const user = await userModel.findOne({ username });
+        const user = await userModel.findOne({ userId });
         if (!user) {
           return res.status(404).json({ message: "No user found" });
         }
@@ -77,8 +77,8 @@ const login = async (req, res) => {
         }
     
         // Create token and send response
-        const token = jwt.sign({username: user.username, id: user._id}, process.env.ACCESS_TOKEN_SECRET);
-        res.status(200).json({username: user.username, role: user.userRole, token});
+        const token = jwt.sign({userId: user.username, id: user._id}, process.env.ACCESS_TOKEN_SECRET);
+        res.status(200).json({userId: user.username, role: user.userRole, token});
     } catch(err) {
         console.log(err);
         res.status(500).json({message: 'Server Error'});
@@ -86,14 +86,19 @@ const login = async (req, res) => {
 }
 
 const requestAccount = async (req, res) => {   
-    console.log('I am inside request account controller'); 
+    if(req.body == null) {
+        return res.status(422).json({message: 'req.body is null'});
+    } else if(req.files == null) {
+        return res.status(422).json({message: 'req.files is null'});
+    }
+
     const { firstName, middleName, lastName, houseNo, province, municipality, wardNo, tole, tel1, tel2, email, nationality, citizenshipNo, issueDate } = req.body;
     const { citizenshipDoc, landOwnershipDoc } = req.files;
 
-    if(firstName == null || lastName == null || houseNo == null || province == null || municipality == null || wardNo == null || tole == null || tel2 == null || email == null || nationality == null || citizenshipNo == null || issueDate == null) {
+    if(!firstName || !lastName || !houseNo || !province || !municipality || !wardNo || !tole || !tel2 || !email || !nationality || !citizenshipNo || !issueDate) {
         return res.status(422).json({message: 'Please fill all the required fields'});
     }
-
+    
     // If request is already made
     const alreadyMade = await requestAccountModel.findOne({ houseNo, citizenshipNo });
     if(alreadyMade) {
@@ -106,6 +111,7 @@ const requestAccount = async (req, res) => {
     // Upload the docs to cloudinary and get the link
     const citizenshipUrl = await cloudinary.uploader.upload(citizenshipDoc.tempFilePath, {public_id: `GuestUserDocs/${citizenshipNo}`})
     .then((result) => result.url).catch(() => res.status(500).json({message: "Error occurred while uploading document"}));
+
     const landOwnershipUrl = await cloudinary.uploader.upload(landOwnershipDoc.tempFilePath, {public_id: `GuestUserDocs/${houseNo}_${citizenshipNo}`})
     .then((result) => result.url).catch(() => res.status(500).json({message: "Error occurred while uploading document"}));
 
@@ -129,7 +135,6 @@ const requestAccount = async (req, res) => {
             citizenshipDoc: citizenshipUrl,
             landOwnershipDoc: landOwnershipUrl
         });
-        console.log(requestSent);
         res.status(200).json({message: "Request made successfully"});
     } catch(err) {
         res.status(500).json({message: "Server error"});
