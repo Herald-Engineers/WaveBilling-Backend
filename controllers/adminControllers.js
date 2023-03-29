@@ -46,48 +46,38 @@ const addReader = async (req, res) => {
         return res.status(422).json({message: 'req.body is null'});
     }
     const { fullName, readerId, password, email, contactNum } = req.body;
-    const token = req.body.token;
     if(!fullName || !readerId || !password || !email || !contactNum) {
         return res.status(422).json({message: 'Please fill all the fields'});
     }
-    if(!token) {
-        return res.status(401).json({message: 'Null token'});
+
+    // If reader already exists
+    const alreadyExists = await userModel.findOne({ userId: readerId });
+
+    if(alreadyExists) {
+        return res.status(409).json({message: 'Reader with same id already exists'});
     }
 
-    try {
-        const tokenExtracted = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-        // Find user with
-        if(tokenExtracted.userRole != 'admin') {
-            return res.status(401).json({message: 'You don\'t have permission for this operation'});
-        }
+    // Adding reader to users list for login
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newReader = await userModel.create({
+        userId: readerId,
+        password: hashedPassword,
+        userRole: 'reader'
+    })
 
-        // If reader already exists
-        const alreadyExists = await userModel.findOne({ userId: readerId });
-
-        if(alreadyExists) {
-            return res.status(409).json({message: 'Reader with same id already exists'});
-        }
-
-        // Adding reader to users list for login
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const newReader = await userModel.create({
-            userId: readerId,
-            password: hashedPassword,
-            userRole: 'reader'
-        })
-
-        // Adding user to meterReaders list
-        await meterReaderModel.create({
-            fullName,
-            email,
-            contactNum,
-            loginId: newReader._id
-        });
-        res.status(201).json({message: 'Meter Reader Successfully added'});
-    } catch(err) {
-        console.log(err);
-        return res.status(401).json({message: 'Invalid token'});
-    }
+    // Adding user to meterReaders list
+    await meterReaderModel.create({
+        fullName,
+        email,
+        contactNum,
+        loginId: newReader._id
+    });
+    res.status(201).json({message: 'Meter Reader Successfully added'});
 }
 
-module.exports = { fetchRequests, addReader };
+const fetchReaders = async (req, res) => {
+    const readers = await meterReaderModel.find();
+    res.json(readers);
+}
+
+module.exports = { fetchRequests, addReader, fetchReaders };
