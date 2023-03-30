@@ -1,8 +1,8 @@
 require('dotenv').config()
 const jwt = require('jsonwebtoken');
 const userModel = require('../models/userModel');
-const organizationModel = require('../models/organizationModel');
-const requestAccountModel = require('../models/requestAccountModel');
+const companiesModel = require('../models/companiesModel');
+const usrDetailsModel = require('../models/usrDetailsModel');
 const bcrypt = require('bcrypt');
 const nodemailer = require('nodemailer');
 
@@ -14,51 +14,107 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-const register = async (req, res) => {
-    const { companyName, address, email1, fullName, email2, jobTitle, paymentMethod, bankName, accountNum, billingCycle, paymentDueDate, estimatedWaterUsage, noOfMeters } = req.body;
+const registerCompany = async (req, res) => {
+    if(!req.body) {
+        return res.status(422).json({message: 'req.body is null'});
+    }
+    const { companyName, address, email1, fullName, email2, jobTitle, contactNum, paymentMethod, bankName, accountNum, billingCycle, paymentDueDate, estimatedWaterUsage, noOfMeters } = req.body;
 
+    // If any of the fields is null 
+    if(!companyName || !address || !email1 || !fullName || !email2 || !jobTitle || !contactNum || !paymentMethod || !bankName || !accountNum || !billingCycle || !paymentDueDate || !estimatedWaterUsage || !noOfMeters) return res.status(422).json({message: 'Please fill all the fields'});
+    
     try {
        // Check if organization already exists
-        const alreadyExists = await organizationModel.findOne({
-            companyName
+        const alreadyExists = await companiesModel.findOne({
+            companyName,
+            email1
         });
         if (alreadyExists) {
             return res.status(409).json({ message: 'Organization already exists' });
         }
 
-        // Check if username is taken
-        // const usernameTaken = await userModel.findOne({
-        //     username
-        // });
-        // if (usernameTaken) {
-        //     return res.status(409).json({ message: 'Username already taken' });
-        // }
+        // Generate username
+        let username;
+        do {
+            username = 'com' + Math.floor(100000 + Math.random() * 900000); // Generate a 6-digit number
+        } while (await userModel.findOne({ userId: username })); // Check if the username already exists in the database
+
+        let password = 'company123';
+
+        // Create login credentials in database
+        const createdLogin = await userModel.create({
+            userId: username,
+            password: await bcrypt.hash(password, 10),
+            userRole: 'companyConsumer'
+        });
 
         // Save organization details to MongoDB
-        const organizationCreated = await organizationModel.create({
-            companyName, address, email1, fullName, email2, jobTitle, paymentMethod, bankName, accountNum, billingCycle, paymentDueDate, estimatedWaterUsage, noOfMeters
-        })
+        await companiesModel.create({
+            companyName, address, email1, fullName, email2, jobTitle, contactNum, paymentMethod, bankName, accountNum, billingCycle, paymentDueDate, estimatedWaterUsage, noOfMeters, loginId: createdLogin._id
+        });
 
-        // Preparing the orgId and hashed password for user
-        // let orgId = await organizationModel.findOne({ contactNum });
-        // orgId = orgId._id;
-        // const hashedPassword = await bcrypt.hash(password, 10);
-
-        // Save user details to MongoDB
-        // const userCreated = await userModel.create({
-        //     username,
-        //     password: hashedPassword,
-        //     distributorId: orgId._id
-        // })
-
-        // Create token and send response
-        // const token = jwt.sign({username: userCreated.username, id: userCreated._id}, process.env.ACCESS_TOKEN_SECRET);
-        res.status(201).json({message: 'Successfully registered'});
+        res.status(201).json({ message: 'Successfully registered', userId: username, password });
     } catch(err) {
         console.log(err);
         res.status(500).json({message: 'Server Error'});
     }
     
+}
+
+const registerUser = async (req, res) => {   
+    // if(req.body == null) {
+    //     return res.status(422).json({message: 'req.body is null'});
+    // } else if(req.files == null) {
+    //     return res.status(422).json({message: 'req.files is null'});
+    // }
+
+    // const { firstName, middleName, lastName, houseNo, province, municipality, wardNo, tole, tel1, tel2, email, nationality, citizenshipNo, issueDate } = req.body;
+    // const { citizenshipDoc, landOwnershipDoc } = req.files;
+
+    // if(!firstName || !lastName || !houseNo || !province || !municipality || !wardNo || !tole || !tel2 || !email || !nationality || !citizenshipNo || !issueDate) {
+    //     return res.status(422).json({message: 'Please fill all the required fields'});
+    // }
+    
+    // // If request is already made
+    // const alreadyMade = await requestAccountModel.findOne({ houseNo, citizenshipNo });
+    // if(alreadyMade) {
+    //     return res.status(409).json({message: 'Request already made'});
+    // }
+
+    // // If account already exits
+    // // to-do
+    
+    // // Upload the docs to cloudinary and get the link
+    // const citizenshipUrl = await cloudinary.uploader.upload(citizenshipDoc.tempFilePath, {public_id: `GuestUserDocs/${citizenshipNo}`})
+    // .then((result) => result.url).catch(() => res.status(500).json({message: "Error occurred while uploading document"}));
+
+    // const landOwnershipUrl = await cloudinary.uploader.upload(landOwnershipDoc.tempFilePath, {public_id: `GuestUserDocs/${houseNo}_${citizenshipNo}`})
+    // .then((result) => result.url).catch(() => res.status(500).json({message: "Error occurred while uploading document"}));
+
+    // try {
+    //     console.log('I am inside request account try block');
+    //     const requestSent = await requestAccountModel.create({
+    //         firstName,
+    //         middleName,
+    //         lastName,
+    //         houseNo,
+    //         province,
+    //         municipality,
+    //         wardNo,
+    //         tole,
+    //         tel1,
+    //         tel2,
+    //         email,
+    //         nationality,
+    //         citizenshipNo,
+    //         issueDate,
+    //         citizenshipDoc: citizenshipUrl,
+    //         landOwnershipDoc: landOwnershipUrl
+    //     });
+    //     res.status(200).json({message: "Request made successfully"});
+    // } catch(err) {
+    //     res.status(500).json({message: "Server error"});
+    // }
 }
 
 const login = async (req, res) => {
@@ -88,62 +144,6 @@ const login = async (req, res) => {
     } catch(err) {
         console.log(err);
         res.status(500).json({message: 'Server Error'});
-    }
-}
-
-const requestAccount = async (req, res) => {   
-    if(req.body == null) {
-        return res.status(422).json({message: 'req.body is null'});
-    } else if(req.files == null) {
-        return res.status(422).json({message: 'req.files is null'});
-    }
-
-    const { firstName, middleName, lastName, houseNo, province, municipality, wardNo, tole, tel1, tel2, email, nationality, citizenshipNo, issueDate } = req.body;
-    const { citizenshipDoc, landOwnershipDoc } = req.files;
-
-    if(!firstName || !lastName || !houseNo || !province || !municipality || !wardNo || !tole || !tel2 || !email || !nationality || !citizenshipNo || !issueDate) {
-        return res.status(422).json({message: 'Please fill all the required fields'});
-    }
-    
-    // If request is already made
-    const alreadyMade = await requestAccountModel.findOne({ houseNo, citizenshipNo });
-    if(alreadyMade) {
-        return res.status(409).json({message: 'Request already made'});
-    }
-
-    // If account already exits
-    // to-do
-    
-    // Upload the docs to cloudinary and get the link
-    const citizenshipUrl = await cloudinary.uploader.upload(citizenshipDoc.tempFilePath, {public_id: `GuestUserDocs/${citizenshipNo}`})
-    .then((result) => result.url).catch(() => res.status(500).json({message: "Error occurred while uploading document"}));
-
-    const landOwnershipUrl = await cloudinary.uploader.upload(landOwnershipDoc.tempFilePath, {public_id: `GuestUserDocs/${houseNo}_${citizenshipNo}`})
-    .then((result) => result.url).catch(() => res.status(500).json({message: "Error occurred while uploading document"}));
-
-    try {
-        console.log('I am inside request account try block');
-        const requestSent = await requestAccountModel.create({
-            firstName,
-            middleName,
-            lastName,
-            houseNo,
-            province,
-            municipality,
-            wardNo,
-            tole,
-            tel1,
-            tel2,
-            email,
-            nationality,
-            citizenshipNo,
-            issueDate,
-            citizenshipDoc: citizenshipUrl,
-            landOwnershipDoc: landOwnershipUrl
-        });
-        res.status(200).json({message: "Request made successfully"});
-    } catch(err) {
-        res.status(500).json({message: "Server error"});
     }
 }
 
@@ -177,4 +177,4 @@ const resetPassword = async (req, res) => {
 
 }
 
-module.exports = {login, register, requestAccount, resetPassword};
+module.exports = {login, registerCompany, registerUser, resetPassword};

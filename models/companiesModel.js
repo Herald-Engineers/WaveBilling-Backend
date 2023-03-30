@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const organizationSchema = new mongoose.Schema({
+const companySchema = new mongoose.Schema({
     companyName: {
       type: String,
       required: true
@@ -21,6 +21,10 @@ const organizationSchema = new mongoose.Schema({
       required: true
     },
     jobTitle: {
+      type: String,
+      required: true
+    },
+    contactNum: {
       type: String,
       required: true
     },
@@ -51,8 +55,11 @@ const organizationSchema = new mongoose.Schema({
     noOfMeters: {
       type: String,
       required: true
+    },
+    loginId: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true
     }
-
 });
 
-module.exports = mongoose.model('Organization', organizationSchema);
+module.exports = mongoose.model('Company', companySchema);
