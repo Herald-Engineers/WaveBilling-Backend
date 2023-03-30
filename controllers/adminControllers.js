@@ -80,4 +80,53 @@ const fetchReaders = async (req, res) => {
     res.json(readers);
 }
 
-module.exports = { fetchRequests, addReader, fetchReaders };
+const deleteReader = async (req, res) => {
+    if(!req.body) {
+        return res.status(422).json({message: 'req.body is null'});
+    }
+    const { _id } = req.body;
+
+    if(!_id) {
+        return res.status(422).json({message: '_id is null'});
+    }
+
+    // Find the reader with requested id
+    const reqReader = await meterReaderModel.findById(_id);
+
+    // If reader does not exist
+    if(!reqReader) {
+        return res.status(404).json({message: 'No reader found with such id'});
+    }
+
+    // Delete the reader's login details
+    await userModel.findByIdAndDelete(reqReader.loginId);
+
+    // Delete the reader details
+    await meterReaderModel.findByIdAndDelete(_id);
+
+    res.status(204);
+}
+
+const editReader = async (req, res) => {
+    if(!req.body) {
+        return res.status(422).json({message: 'req.body is null'});
+    }
+    const {fullName, readerId, contactNum, email} = req.body;
+    
+    if(!fullName || !readerId || !contactNum || !email ) {
+        return res.status(422).json({message: 'Fields cannot be left empty'});
+    }
+
+    // Check if readerId already exists
+    const idAlreadyExists = await userModel.find({ userId: readerId });
+    if(idAlreadyExists) return res.status(409).json({message: 'Reader with same id already exists'});
+
+    // Fetch reader of requested id from database
+    const currentReader = await meterReaderModel.findById(readerId);
+
+    console.log(currentReader);
+}
+
+
+
+module.exports = { fetchRequests, addReader, fetchReaders, deleteReader, editReader };
