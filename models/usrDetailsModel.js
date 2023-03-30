@@ -63,6 +63,10 @@ const requestAccountSchema = new mongoose.Schema({
     landOwnershipDoc: {
         type: String,
         required: true
+    },
+    loginId: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true
     }
 });
 

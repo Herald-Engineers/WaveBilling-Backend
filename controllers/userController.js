@@ -39,7 +39,7 @@ const registerCompany = async (req, res) => {
             username = 'com' + Math.floor(100000 + Math.random() * 900000); // Generate a 6-digit number
         } while (await userModel.findOne({ userId: username })); // Check if the username already exists in the database
 
-        let password = 'company123';
+        const password = 'company123';
 
         // Create login credentials in database
         const createdLogin = await userModel.create({
@@ -61,60 +61,71 @@ const registerCompany = async (req, res) => {
     
 }
 
-const registerUser = async (req, res) => {   
-    // if(req.body == null) {
-    //     return res.status(422).json({message: 'req.body is null'});
-    // } else if(req.files == null) {
-    //     return res.status(422).json({message: 'req.files is null'});
-    // }
+const registerUser = async (req, res) => {
+    if(req.body == null) {
+        return res.status(422).json({message: 'req.body is null'});
+    } else if(req.files == null) {
+        return res.status(422).json({message: 'req.files is null'});
+    }
 
-    // const { firstName, middleName, lastName, houseNo, province, municipality, wardNo, tole, tel1, tel2, email, nationality, citizenshipNo, issueDate } = req.body;
-    // const { citizenshipDoc, landOwnershipDoc } = req.files;
+    const { firstName, middleName, lastName, houseNo, province, municipality, wardNo, tole, tel1, tel2, email, nationality, citizenshipNo, issueDate } = req.body;
+    const { citizenshipDoc, landOwnershipDoc } = req.files;
 
-    // if(!firstName || !lastName || !houseNo || !province || !municipality || !wardNo || !tole || !tel2 || !email || !nationality || !citizenshipNo || !issueDate) {
-    //     return res.status(422).json({message: 'Please fill all the required fields'});
-    // }
+    if(!firstName || !lastName || !houseNo || !province || !municipality || !wardNo || !tole || !tel2 || !email || !nationality || !citizenshipNo || !issueDate) {
+        return res.status(422).json({message: 'Please fill all the required fields'});
+    }
     
-    // // If request is already made
-    // const alreadyMade = await requestAccountModel.findOne({ houseNo, citizenshipNo });
-    // if(alreadyMade) {
-    //     return res.status(409).json({message: 'Request already made'});
-    // }
+    // If request is already made
+    const alreadyRegistered = await usrDetailsModel.findOne({ citizenshipNo, houseNo  });
+    if(alreadyRegistered) {
+        return res.status(409).json({message: 'User is already registered'});
+    }
 
-    // // If account already exits
-    // // to-do
+    // Generate username
+    let username;
+    do {
+        username = 'usr' + Math.floor(100000 + Math.random() * 900000); // Generate a 6-digit number
+    } while (await userModel.findOne({ userId: username })); // Check if the username already exists in the database
+    const password = 'user123'
+
+    // Create login credentials in database
+    const createdLogin = await userModel.create({
+        userId: username,
+        password: await bcrypt.hash(password, 10),
+        userRole: 'individualConsumer'
+    });
     
-    // // Upload the docs to cloudinary and get the link
-    // const citizenshipUrl = await cloudinary.uploader.upload(citizenshipDoc.tempFilePath, {public_id: `GuestUserDocs/${citizenshipNo}`})
-    // .then((result) => result.url).catch(() => res.status(500).json({message: "Error occurred while uploading document"}));
+    // Upload the docs to cloudinary and get the link
+    const citizenshipUrl = await cloudinary.uploader.upload(citizenshipDoc.tempFilePath, {public_id: `GuestUserDocs/${citizenshipNo}`})
+    .then((result) => result.url).catch(() => res.status(500).json({message: "Error occurred while uploading document"}));
 
-    // const landOwnershipUrl = await cloudinary.uploader.upload(landOwnershipDoc.tempFilePath, {public_id: `GuestUserDocs/${houseNo}_${citizenshipNo}`})
-    // .then((result) => result.url).catch(() => res.status(500).json({message: "Error occurred while uploading document"}));
+    const landOwnershipUrl = await cloudinary.uploader.upload(landOwnershipDoc.tempFilePath, {public_id: `GuestUserDocs/${houseNo}_${citizenshipNo}`})
+    .then((result) => result.url).catch(() => res.status(500).json({message: "Error occurred while uploading document"}));
 
-    // try {
-    //     console.log('I am inside request account try block');
-    //     const requestSent = await requestAccountModel.create({
-    //         firstName,
-    //         middleName,
-    //         lastName,
-    //         houseNo,
-    //         province,
-    //         municipality,
-    //         wardNo,
-    //         tole,
-    //         tel1,
-    //         tel2,
-    //         email,
-    //         nationality,
-    //         citizenshipNo,
-    //         issueDate,
-    //         citizenshipDoc: citizenshipUrl,
-    //         landOwnershipDoc: landOwnershipUrl
-    //     });
-    //     res.status(200).json({message: "Request made successfully"});
-    // } catch(err) {
-    //     res.status(500).json({message: "Server error"});
-    // }
+    try {
+        await usrDetailsModel.create({
+            firstName,
+            middleName,
+            lastName,
+            houseNo,
+            province,
+            municipality,
+            wardNo,
+            tole,
+            tel1,
+            tel2,
+            email,
+            nationality,
+            citizenshipNo,
+            issueDate,
+            citizenshipDoc: citizenshipUrl,
+            landOwnershipDoc: landOwnershipUrl,
+            loginId: createdLogin._id
+        });
+        res.status(200).json({message: "Request made successfully", userId: username, password});
+    } catch(err) {
+        res.status(500).json({message: "Server error"});
+    }
 }
 
 const login = async (req, res) => {
@@ -177,4 +188,4 @@ const resetPassword = async (req, res) => {
 
 }
 
-module.exports = {login, registerCompany, registerUser, resetPassword};
+module.exports = {login, registerCompany, registerUser, resetPassword}; 
