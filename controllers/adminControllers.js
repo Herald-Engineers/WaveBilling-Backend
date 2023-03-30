@@ -104,7 +104,7 @@ const deleteReader = async (req, res) => {
     // Delete the reader details
     await meterReaderModel.findByIdAndDelete(_id);
 
-    res.status(204);
+    res.status(204).end();
 }
 
 const editReader = async (req, res) => {
