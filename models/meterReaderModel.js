@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const billReaderSchema = new mongoose.Schema({
+const meterReaderSchema = new mongoose.Schema({
     fullName: {
         type: String,
         required: true
@@ -19,4 +19,4 @@ const billReaderSchema = new mongoose.Schema({
     }
 })
 
-module.exports = mongoose.model('BillReader', billReaderSchema);
+module.exports = mongoose.model('meterReaders', meterReaderSchema);
