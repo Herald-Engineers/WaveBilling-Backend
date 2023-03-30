@@ -70,4 +70,4 @@ const requestAccountSchema = new mongoose.Schema({
     }
 });
 
-module.exports = mongoose.model('RequestAccount', requestAccountSchema);
+module.exports = mongoose.model('usrDetails', requestAccountSchema);
