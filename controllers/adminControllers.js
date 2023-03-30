@@ -111,20 +111,50 @@ const editReader = async (req, res) => {
     if(!req.body) {
         return res.status(422).json({message: 'req.body is null'});
     }
-    const {fullName, readerId, contactNum, email} = req.body;
-    
+    const { _id, fullName, readerId, contactNum, email } = req.body;
+    if(!_id) {
+        return res.status(422).json({message: '_id was not provided'});
+    }
     if(!fullName || !readerId || !contactNum || !email ) {
         return res.status(422).json({message: 'Fields cannot be left empty'});
     }
 
-    // Check if readerId already exists
-    const idAlreadyExists = await userModel.find({ userId: readerId });
-    if(idAlreadyExists) return res.status(409).json({message: 'Reader with same id already exists'});
+    // Check if the readerModel _id exists
+    const readerExists = await meterReaderModel.findById(_id);
 
-    // Fetch reader of requested id from database
-    const currentReader = await meterReaderModel.findById(readerId);
+    if(!readerExists) return res.status(404).json({message: 'The meter reader with provided _id doesn\'t exist'});
 
-    console.log(currentReader);
+    // Check if readerId in userModel already exists
+    const userIdExists = await userModel.find({ userId: readerId });
+    
+    if(userIdExists.length > 0) {
+        if(userIdExists.length == 1 && userIdExists[0]._id.toString() === readerExists.loginId.toString()) {
+        } else {
+            return res.status(409).json({message: 'userId already taken'});
+        }
+    }
+
+    const readerFilter = { _id };
+    const readerUpdate = {
+        $set: {
+          fullName,
+          contactNum,
+          email
+        }
+    };
+
+    const userFilter = {
+        _id: readerExists.loginId
+    }
+    const userUpdate = {
+        $set: {
+            userId: readerId
+        }
+    }
+
+    await meterReaderModel.updateOne(readerFilter, readerUpdate);
+    await userModel.updateOne(userFilter, userUpdate);
+    res.json({message: 'Reader updated successfully'});
 }
 
 
