@@ -157,6 +157,20 @@ const editReader = async (req, res) => {
     res.json({message: 'Reader updated successfully'});
 }
 
+const fetchUsername = async (req, res) => {
+    if(!req.body) {
+        return res.status(422).json({message: 'req.body is null'});
+    }
+    const loginId = req.body.loginId;
+    try {
+        const findLogin = await userModel.findById(loginId);
+        res.json({userId: findLogin.userId});
+    } catch(err) {
+        console.log(err);
+        res.status(500).json({message: 'Login id error'});
+    }
+}
 
 
-module.exports = { fetchRequests, addReader, fetchReaders, deleteReader, editReader };
+
+module.exports = { fetchRequests, addReader, fetchReaders, deleteReader, editReader, fetchUsername };
