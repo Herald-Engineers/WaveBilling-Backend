@@ -188,4 +188,39 @@ const resetPassword = async (req, res) => {
 
 }
 
-module.exports = {login, registerCompany, registerUser, resetPassword}; 
+const contactWavebilling = async (req, res) => {
+    if(req.body == null) {
+        return res.status(422).json({message: 'req.body is null'});
+    }
+    const { firstName, lastName, email, contactNum, queries } = req.body;
+    if(!firstName || !lastName || !email || !contactNum || !queries) {
+        return res.status(422).json({message: 'Please fill all the required fields'});
+    }
+
+    // Sen
+    const nodemailer = require('nodemailer');
+    const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.GMAIL_EMAIL,
+        pass: process.env.GMAIL_PASSWORD
+    }
+    });
+
+    const mailData = {
+        to: 'wavebilling19@gmail.com',
+        subject: `New query from ${firstName} ${lastName}`,
+        text: `${queries}\n${email}\n${contactNum}`
+    }
+    transporter.sendMail(mailData, (err, info) => {
+    if(err) {
+        console.log('Error occured: ' + err);
+        return res.status(500).json({message: 'Server error'});
+    }
+    console.log('Successful ' + info.response);
+    return res.json({message: 'Your queries has been received'});
+    })
+
+}
+
+module.exports = {login, registerCompany, registerUser, resetPassword, contactWavebilling}; 
