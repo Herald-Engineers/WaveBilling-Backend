@@ -165,6 +165,9 @@ const login = async (req, res) => {
             findIndividual = await usrDetailsModel.findOne({ loginId: user._id });
             fullName = `${findIndividual.firstName}${findIndividual.middleName ? ' ' + findIndividual.middleName + ' ' : ' '}${findIndividual.lastName}`;
 
+        } else if(user.userRole === 'reader') {
+            findReader = await meterReaderModel.findOne({ loginId: user._id });
+            fullName = findReader.fullName;
         }
 
         res.status(200).json({fullName, role: user.userRole, token});
