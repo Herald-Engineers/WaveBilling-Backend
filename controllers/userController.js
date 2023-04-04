@@ -1,8 +1,11 @@
 require('dotenv').config()
 const jwt = require('jsonwebtoken');
+
 const userModel = require('../models/userModel');
 const companiesModel = require('../models/companiesModel');
 const usrDetailsModel = require('../models/usrDetailsModel');
+const meterReaderModel = require('../models/meterReaderModel');
+
 const bcrypt = require('bcrypt');
 const nodemailer = require('nodemailer');
 
@@ -151,7 +154,20 @@ const login = async (req, res) => {
     
         // Create token and send response
         const token = jwt.sign({userId: user.userId, userRole: user.userRole, id: user._id}, process.env.ACCESS_TOKEN_SECRET);
-        res.status(200).json({userId: user.userId, role: user.userRole, token});
+
+        // get the company/reader/user full name
+        let fullName = user.userId;
+
+        if(user.userRole === 'companyConsumer') {
+            findCompany = await companiesModel.findOne({ loginId: user._id });
+            fullName = findCompany.companyName;
+        } else if(user.userRole === 'individualConsumer') {
+            findIndividual = await usrDetailsModel.findOne({ loginId: user._id });
+            fullName = `${findIndividual.firstName}${findIndividual.middleName ? ' ' + findIndividual.middleName + ' ' : ' '}${findIndividual.lastName}`;
+
+        }
+
+        res.status(200).json({fullName, role: user.userRole, token});
     } catch(err) {
         console.log(err);
         res.status(500).json({message: 'Server Error'});
