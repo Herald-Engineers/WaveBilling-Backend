@@ -18,6 +18,10 @@ const scheduleSchema = new mongoose.Schema({
         required: true
     },
     assignedTo: {
+        type: String,
+        required: true
+    },
+    readerId: {
         type: mongoose.Schema.Types.ObjectId,
         required: true
     }

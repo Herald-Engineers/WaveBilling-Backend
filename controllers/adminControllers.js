@@ -176,15 +176,15 @@ const addSchedule = async (req, res) => {
     if(!req.body) {
         return res.status(422).json({message: 'req.body is null'});
     }
-    const { address1, address2, address3, address4, address5, date, shift, assignedTo } = req.body;
+    const { address1, address2, address3, address4, address5, date, shift, readerId } = req.body;
     if(!address1) {
         return res.status(422).json({message: 'Address 1 should not be null'});
     }
-    if(!date || !shift || !assignedTo) {
+    if(!date || !shift || !readerId) {
         return res.status(422).json({message: 'Please fill out all the required fields.'});
     }
     try {
-        const findReader = await meterReaderModel.findById(assignedTo);
+        const findReader = await meterReaderModel.findById(readerId);
         if(!findReader) {
             return res.status(404).json({message: 'No such meter reader.'});
         }
@@ -196,7 +196,8 @@ const addSchedule = async (req, res) => {
             address5,
             date,
             shift,
-            assignedTo: findReader._id
+            assignedTo: findReader.fullName,
+            readerId: findReader._id
         })
         res.status(201).json({message: 'Scheduled successfully.'});
     } catch(err) {
