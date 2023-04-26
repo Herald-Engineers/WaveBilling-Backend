@@ -207,5 +207,10 @@ const addSchedule = async (req, res) => {
 
 }
 
+const fetchSchedules = async (req, res) => {
+    const schedules = await scheduleModel.find();
+    res.json(schedules);
+}
 
-module.exports = { fetchRequests, addReader, fetchReaders, deleteReader, editReader, fetchUsername, addSchedule };
+
+module.exports = { fetchRequests, addReader, fetchReaders, deleteReader, editReader, fetchUsername, addSchedule, fetchSchedules };
