@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 
 const userModel = require('../models/userModel');
 const meterReaderModel = require('../models/meterReaderModel');
+const scheduleModel = require('../models/scheduleModel');
 const bcrypt = require('bcrypt');
 
 const fetchRequests = async (req, res) => {
@@ -171,6 +172,40 @@ const fetchUsername = async (req, res) => {
     }
 }
 
+const addSchedule = async (req, res) => {
+    if(!req.body) {
+        return res.status(422).json({message: 'req.body is null'});
+    }
+    const { address1, address2, address3, address4, address5, date, shift, assignedTo } = req.body;
+    if(!address1) {
+        return res.status(422).json({message: 'Address 1 should not be null'});
+    }
+    if(!date || !shift || !assignedTo) {
+        return res.status(422).json({message: 'Please fill out all the required fields.'});
+    }
+    try {
+        const findReader = await meterReaderModel.findById(assignedTo);
+        if(!findReader) {
+            return res.status(404).json({message: 'No such meter reader.'});
+        }
+        await scheduleModel.create({
+            address1,
+            address2,
+            address3,
+            address4,
+            address5,
+            date,
+            shift,
+            assignedTo: findReader._id
+        })
+        res.status(201).json({message: 'Scheduled successfully.'});
+    } catch(err) {
+        console.log(err);
+        res.status(500).json({message: 'Server error'});
+    }
 
 
-module.exports = { fetchRequests, addReader, fetchReaders, deleteReader, editReader, fetchUsername };
+}
+
+
+module.exports = { fetchRequests, addReader, fetchReaders, deleteReader, editReader, fetchUsername, addSchedule };
