@@ -64,10 +64,11 @@ const requestAccountSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    loginId: {
-      type: mongoose.Schema.Types.ObjectId,
-      required: true
-    }
+    approvedStatus: {
+      type: Boolean,
+      default: false
+    },
+    loginId: mongoose.Schema.Types.ObjectId
 });
 
 module.exports = mongoose.model('usrDetails', requestAccountSchema);
