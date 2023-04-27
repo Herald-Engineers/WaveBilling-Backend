@@ -36,27 +36,12 @@ const registerCompany = async (req, res) => {
             return res.status(409).json({ message: 'Organization already exists' });
         }
 
-        // Generate username
-        let username;
-        do {
-            username = 'com' + Math.floor(100000 + Math.random() * 900000); // Generate a 6-digit number
-        } while (await userModel.findOne({ userId: username })); // Check if the username already exists in the database
-
-        const password = 'company123';
-
-        // Create login credentials in database
-        const createdLogin = await userModel.create({
-            userId: username,
-            password: await bcrypt.hash(password, 10),
-            userRole: 'companyConsumer'
-        });
-
         // Save organization details to MongoDB
         await companiesModel.create({
-            companyName, address, email1, fullName, email2, jobTitle, contactNum, paymentMethod, bankName, accountNum, billingCycle, paymentDueDate, estimatedWaterUsage, noOfMeters, loginId: createdLogin._id
+            companyName, address, email1, fullName, email2, jobTitle, contactNum, paymentMethod, bankName, accountNum, billingCycle, paymentDueDate, estimatedWaterUsage, noOfMeters
         });
 
-        res.status(201).json({ message: 'Successfully registered', userId: username, password });
+        res.status(201).json({ message: 'Successfully registered! You will be notified through email after approval.' });
     } catch(err) {
         console.log(err);
         res.status(500).json({message: 'Server Error'});
@@ -83,20 +68,6 @@ const registerUser = async (req, res) => {
     if(alreadyRegistered) {
         return res.status(409).json({message: 'User is already registered'});
     }
-
-    // Generate username
-    let username;
-    do {
-        username = 'usr' + Math.floor(100000 + Math.random() * 900000); // Generate a 6-digit number
-    } while (await userModel.findOne({ userId: username })); // Check if the username already exists in the database
-    const password = 'user123'
-
-    // Create login credentials in database
-    const createdLogin = await userModel.create({
-        userId: username,
-        password: await bcrypt.hash(password, 10),
-        userRole: 'individualConsumer'
-    });
     
     // Upload the docs to cloudinary and get the link
     const citizenshipUrl = await cloudinary.uploader.upload(citizenshipDoc.tempFilePath, {public_id: `GuestUserDocs/${citizenshipNo}`})
@@ -122,10 +93,9 @@ const registerUser = async (req, res) => {
             citizenshipNo,
             issueDate,
             citizenshipDoc: citizenshipUrl,
-            landOwnershipDoc: landOwnershipUrl,
-            loginId: createdLogin._id
+            landOwnershipDoc: landOwnershipUrl
         });
-        res.status(200).json({message: "Request made successfully", userId: username, password});
+        res.status(200).json({message: "Successfully registered! You will be notified through email after approval"});
     } catch(err) {
         res.status(500).json({message: "Server error"});
     }
