@@ -4,43 +4,11 @@ const jwt = require('jsonwebtoken');
 
 const userModel = require('../models/userModel');
 const meterReaderModel = require('../models/meterReaderModel');
+const usrDetailsModel = require('../models/usrDetailsModel');
+const receiptModel = require('../models/receiptModel');
 const scheduleModel = require('../models/scheduleModel');
+const companiesModel = require('../models/companiesModel');
 const bcrypt = require('bcrypt');
-
-const fetchRequests = async (req, res) => {
-    const token = req.body.token;
-    if(!token) {
-        return res.status(401).send('Unauthorized: No token provided');
-    }
-    try {
-        jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-    } catch(err) {
-        return res.status(401).send('Unauthorized: Invalid token');
-    }
-    console.log();
-    res.send('nice');
-    // const {username, password} = req.body;
-    // try {
-    //     // Check if user exists in server
-    //     const user = await userModel.findOne({ username });
-    //     if (!user) {
-    //       return res.status(404).json({ message: "No user found" });
-    //     }
-    
-    //     // Check if password is correct
-    //     const isMatch = await bcrypt.compare(password, user.password);
-    //     if (!isMatch) {
-    //       return res.status(401).json({ message: "Password incorrect" });
-    //     }
-    
-    //     // Create token and send response
-    //     const token = jwt.sign({username: user.username, id: user._id}, process.env.ACCESS_TOKEN_SECRET);
-    //     res.status(200).json({fullName: user.username, role: user.userRole, token});
-    // } catch(err) {
-    //     console.log(err);
-    //     res.status(500).json({message: 'Server Error'});
-    // }
-}
 
 const addReader = async (req, res) => {
     if(!req.body) {
@@ -213,5 +181,73 @@ const fetchSchedules = async (req, res) => {
     res.json(schedules);
 }
 
+const getLoginId = (_id) => {
+    const result = userModel.findById(_id);
+    if(result) return result.userID;
+}
 
-module.exports = { fetchRequests, addReader, fetchReaders, deleteReader, editReader, fetchUsername, addSchedule, fetchSchedules };
+const fetchConsumers = async (req, res) => {
+    const individuals = await usrDetailsModel.find();
+    const companies = await companiesModel.find();
+
+    // console.log(individuals);
+    const individualsDetails = individuals.map(individual => {
+        const { _id, firstName, middleName, lastName, meterNo, tel2, email, tole, wardNo, municipality, approvedStatus } = individual;
+        let paymentStatus = '-';
+        
+        // Setting payment status
+        if(approvedStatus) {
+            const notPaid = receiptModel.findOne({ consumerId: _id, paid: false });
+            if(notPaid) {
+                paymentStatus = false
+            } else {
+                paymentStatus = true
+            };
+        }
+
+        return ({
+            _id,
+            fullName: middleName ? `${firstName} ${middleName} ${lastName}` : `${firstName} ${lastName}`,
+            userId: getLoginId(_id),
+            meterNo,
+            contactNum: tel2,
+            email,
+            address: `${wardNo}-${municipality}, ${tole}`,
+            consumerType: 'Individual',
+            paymentStatus,
+            approvedStatus
+        })
+    })
+
+    const companiesDetails = companies.map(company => {
+        const { _id, companyName, meterNo, contactNum, email1, address, approvedStatus } = company;
+        let paymentStatus = '-';
+        
+        // Setting payment status
+        if(approvedStatus) {
+            const notPaid = receiptModel.findOne({ consumerId: _id, paid: false });
+            if(notPaid) {
+                paymentStatus = false
+            } else {
+                paymentStatus = true
+            };
+        }
+
+        return ({
+            _id,
+            fullName: companyName,
+            userId: getLoginId(_id),
+            meterNo,
+            contactNum: contactNum,
+            email: email1,
+            address,
+            consumerType: 'Company',
+            paymentStatus,
+            approvedStatus
+        })
+    })
+    const result = individualsDetails.concat(companiesDetails);
+    res.json(result);
+}
+
+module.exports = { addReader, fetchReaders, deleteReader, editReader, fetchUsername, addSchedule, fetchSchedules, fetchConsumers };
