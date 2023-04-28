@@ -60,6 +60,7 @@ const companySchema = new mongoose.Schema({
       type: Boolean,
       default: false
     },
+    meterNo: String,
     loginId: mongoose.Schema.Types.ObjectId
 });
 
