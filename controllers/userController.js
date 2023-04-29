@@ -5,6 +5,7 @@ const userModel = require('../models/userModel');
 const companiesModel = require('../models/companiesModel');
 const usrDetailsModel = require('../models/usrDetailsModel');
 const meterReaderModel = require('../models/meterReaderModel');
+const issueModel = require('../models/issueModel');
 
 const bcrypt = require('bcrypt');
 const nodemailer = require('nodemailer');
@@ -211,5 +212,67 @@ const contactWavebilling = async (req, res) => {
     })
 
 }
+const submitIssue = async (req, res) => {
+    if(!req.body) {
+        return res.status(422).json({message: 'req.body is null'});
+    } 
+    const { subject, issue } = req.body;
+    if(!subject || !issue) {
+        return res.status(422).json({message: 'Please fill all the required fields'});
+    }
+    const login_id = req.user.id;
+    const username = req.user.userId;
 
-module.exports = {login, registerCompany, registerUser, resetPassword, contactWavebilling}; 
+    // Check if already made
+    const alreadyExists = await issueModel.findOne({
+        userName: username,
+        subject,
+    });
+    if(alreadyExists) return res.status(409).json({ message: 'Issue has been already raised.' });
+
+    if(req.user.userRole === 'reader') {
+        const userDoc = await meterReaderModel.findOne({loginId: login_id});
+        const userFullName = userDoc.fullName;
+        const phoneNum = userDoc.contactNum;        
+        // Add to issue collection
+        await issueModel.create({
+            name: userFullName,
+            userName: username,
+            phoneNum,
+            subject,
+            issue
+        });
+        res.json({ message: 'Successfully raised issue with subject: ' + subject });
+
+    } else if(req.user.userRole === 'companyConsumer') {
+        const userDoc = await companiesModel.findOne({loginId: login_id});
+        const userFullName = userDoc.companyName;
+        const phoneNum = userDoc.contactNum;        
+        // Add to issue collection
+        await issueModel.create({
+            name: userFullName,
+            userName: username,
+            phoneNum,
+            subject,
+            issue
+        });
+        res.json({ message: 'Successfully raised issue with subject: ' + subject });
+
+    } else if(req.user.userRole === 'individualConsumer') {
+        const userDoc = await usrDetailsModel.findOne({loginId: login_id});
+        const userFullName = userDoc.middleName?`${userDoc.firstName} ${userDoc.middleName} ${userDoc.lastName}`: `${userDoc.firstName} ${userDoc.lastName}`;
+        const phoneNum = userDoc.tel2;        
+        // Add to issue collection
+        await issueModel.create({
+            name: userFullName,
+            userName: username,
+            phoneNum,
+            subject,
+            issue
+        });
+        res.json({ message: 'Successfully raised issue with subject: ' + subject });
+
+    }
+}
+
+module.exports = { login, registerCompany, registerUser, resetPassword, contactWavebilling, submitIssue }; 
