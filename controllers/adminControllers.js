@@ -465,6 +465,8 @@ const deleteUser = async (req, res) => {
         const userDoc = await companiesModel.findById(_id);
         if(!userDoc) {
             return res.status(404).json({message: 'User not found.'});
+        } else if(!userDoc.approvedStatus) {
+            return res.status(404).json({message: 'User not approved yet'});
         }
 
         // Delete the receipts of that user
@@ -486,6 +488,55 @@ const deleteUser = async (req, res) => {
         return res.status(404).json({message: 'No such userType'});
     }
 }
+const rejectRequest = async (req, res) => {
+    if(!req.body) {
+        return res.status(422).json({message: 'req.body is null'});
+    }
+    const { _id, userType } = req.body;
+    if(!_id) {
+        return res.status(422).json({message: '_id is null'});
+    }
+    if(!userType) {
+        return res.status(422).json({message: 'userType is null'});
+    }
+
+    if(userType == 'Individual') {
+        // Get the document of the user in usrDetails
+        const userDoc = await usrDetailsModel.findById(_id);
+        if(!userDoc) {
+            return res.status(404).json({message: 'User not found.'});
+        } else if(userDoc.approvedStatus) {
+            return res.status(404).json({message: 'User is already approved'});
+        }
+
+        // Delete the submitted documents from cloudinary
+        await cloudinary.uploader.destroy(`GuestUserDocs/${userDoc.citizenshipNo}`, function(error, result) {
+            console.log(result);
+        });
+        await cloudinary.uploader.destroy(`GuestUserDocs/${userDoc.houseNo}_${userDoc.citizenshipNo}`, function(error, result) {
+            console.log(result);
+        });
+
+        // Delete the user from the userDetails
+        await usrDetailsModel.deleteOne({ _id });
+        res.status(204).end();
+
+    } else if(userType == 'Company') {
+        // Get the document of the user in usrDetails
+        const userDoc = await companiesModel.findById(_id);
+        if(!userDoc) {
+            return res.status(404).json({message: 'User not found.'});
+        } else if(userDoc.approvedStatus) {
+            return res.status(404).json({message: 'User is already approved'});
+        }
+
+        // Delete the user from the userDetails
+        await companiesModel.deleteOne({ _id });
+        res.status(204).end();
+    } else {
+        return res.status(404).json({message: 'No such userType'});
+    }
+}
 
 
-module.exports = { addReader, fetchReaders, deleteReader, editReader, fetchUsername, addSchedule, fetchSchedules, fetchConsumers, approveUser, deleteUser };
+module.exports = { addReader, fetchReaders, deleteReader, editReader, fetchUsername, addSchedule, fetchSchedules, fetchConsumers, approveUser, deleteUser, rejectRequest };

@@ -1,7 +1,7 @@
 const express = require('express');
 const adminRouter = express.Router();
 
-const { addReader, fetchReaders, deleteReader, editReader, fetchUsername, addSchedule, fetchSchedules, fetchConsumers, approveUser, deleteUser } = require('../controllers/adminControllers');
+const { addReader, fetchReaders, deleteReader, editReader, fetchUsername, addSchedule, fetchSchedules, fetchConsumers, approveUser, deleteUser, rejectRequest } = require('../controllers/adminControllers');
 
 const authenticateToken = require('../middlewares/authenticateToken');
 const isAdmin = require('../middlewares/isAdmin');
@@ -24,5 +24,6 @@ adminRouter.patch('/edit-reader', authenticateToken, isAdmin, editReader);
 // DELETE REQUESTS
 adminRouter.delete('/delete-reader', authenticateToken, isAdmin, deleteReader);
 adminRouter.delete('/delete-user', authenticateToken, isAdmin, deleteUser)
+adminRouter.delete('/reject-request', authenticateToken, isAdmin, rejectRequest)
 
 module.exports = adminRouter;
