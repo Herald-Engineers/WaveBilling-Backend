@@ -267,11 +267,16 @@ const approveUser = async (req, res) => {
             const password = 'user123'
     
             // Create login credentials in database
-            await userModel.create({
+            const loginDoc = await userModel.create({
                 userId: username,
                 password: await bcrypt.hash(password, 10),
                 userRole: 'individualConsumer'
             });
+
+            await usrDetailsModel.updateOne(
+                { _id },
+                { $set: { loginId: loginDoc._id } }
+            );
 
             // add to meterlist database
             await meterModel.create({
@@ -326,11 +331,16 @@ const approveUser = async (req, res) => {
 
             const password = 'company123';
 
-            await userModel.create({
+            const loginDoc = await userModel.create({
                 userId: username,
                 password: await bcrypt.hash(password, 10),
                 userRole: 'companyConsumer'
             });
+
+            await companiesModel.updateOne(
+                { _id },
+                { $set: { loginId: loginDoc._id } }
+            );
 
             // add to meterlist database
             for(let i=0; i<requiredMeters; i++) {
