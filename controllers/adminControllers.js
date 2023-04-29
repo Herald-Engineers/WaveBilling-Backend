@@ -8,8 +8,25 @@ const usrDetailsModel = require('../models/usrDetailsModel');
 const receiptModel = require('../models/receiptModel');
 const scheduleModel = require('../models/scheduleModel');
 const companiesModel = require('../models/companiesModel');
+const meterModel = require('../models/meterModel');
 const bcrypt = require('bcrypt');
 
+// HELPER
+const getLoginId = (_id) => {
+    const result = userModel.findById(_id);
+    if(result) return result.userID;
+}
+const generateMeterNo = async () => {
+    const min = 10000; // Minimum 5-digit number
+    const max = 99999; // Maximum 5-digit number
+    let meterNo;
+    do {
+        meterNo = Math.floor(Math.random() * (max - min + 1) + min); // Generate random number
+    } while (await meterModel.findOne({ meterNo: meterNo.toString() })) // Check if number already exists in collection
+    return meterNo;
+}
+
+// CREATE
 const addReader = async (req, res) => {
     if(!req.body) {
         return res.status(422).json({message: 'req.body is null'});
@@ -43,39 +60,129 @@ const addReader = async (req, res) => {
     });
     res.status(201).json({message: 'Meter Reader Successfully added'});
 }
+const addSchedule = async (req, res) => {
+    if(!req.body) {
+        return res.status(422).json({message: 'req.body is null'});
+    }
+    const { address1, address2, address3, address4, address5, date, shift, readerId } = req.body;
+    if(!address1) {
+        return res.status(422).json({message: 'Address 1 should not be null'});
+    }
+    if(!date || !shift || !readerId) {
+        return res.status(422).json({message: 'Please fill out all the required fields.'});
+    }
+    try {
+        const findReader = await meterReaderModel.findById(readerId);
+        if(!findReader) {
+            return res.status(404).json({message: 'No such meter reader.'});
+        }
+        await scheduleModel.create({
+            address1,
+            address2,
+            address3,
+            address4,
+            address5,
+            date,
+            shift,
+            assignedTo: findReader.fullName,
+            readerId: findReader._id
+        })
+        res.status(201).json({message: 'Scheduled successfully.'});
+    } catch(err) {
+        console.log(err);
+        res.status(500).json({message: 'Server error'});
+    }
 
+
+}
+
+// READ
 const fetchReaders = async (req, res) => {
     const readers = await meterReaderModel.find();
     res.json(readers);
 }
-
-const deleteReader = async (req, res) => {
+const fetchUsername = async (req, res) => {
     if(!req.body) {
         return res.status(422).json({message: 'req.body is null'});
     }
-    const { _id } = req.body;
-
-    if(!_id) {
-        return res.status(422).json({message: '_id is null'});
+    const loginId = req.body.loginId;
+    try {
+        const findLogin = await userModel.findById(loginId);
+        res.json({userId: findLogin.userId});
+    } catch(err) {
+        console.log(err);
+        res.status(500).json({message: 'Login id error'});
     }
+}
+const fetchSchedules = async (req, res) => {
+    const schedules = await scheduleModel.find();
+    res.json(schedules);
+}
+const fetchConsumers = async (req, res) => {
+    const individuals = await usrDetailsModel.find();
+    const companies = await companiesModel.find();
 
-    // Find the reader with requested id
-    const reqReader = await meterReaderModel.findById(_id);
+    // console.log(individuals);
+    const individualsDetails = individuals.map(individual => {
+        const { _id, firstName, middleName, lastName, meterNo, tel2, email, tole, wardNo, municipality, approvedStatus } = individual;
+        let paymentStatus = '-';
+        
+        // Setting payment status
+        if(approvedStatus) {
+            const notPaid = receiptModel.findOne({ consumerId: _id, paid: false });
+            if(notPaid) {
+                paymentStatus = false
+            } else {
+                paymentStatus = true
+            };
+        }
 
-    // If reader does not exist
-    if(!reqReader) {
-        return res.status(404).json({message: 'No reader found with such id'});
-    }
+        return ({
+            _id,
+            fullName: middleName ? `${firstName} ${middleName} ${lastName}` : `${firstName} ${lastName}`,
+            userId: getLoginId(_id),
+            meterNo,
+            contactNum: tel2,
+            email,
+            address: `${municipality}-${wardNo}, ${tole}`,
+            consumerType: 'Individual',
+            paymentStatus,
+            approvedStatus
+        })
+    })
 
-    // Delete the reader's login details
-    await userModel.findByIdAndDelete(reqReader.loginId);
+    const companiesDetails = companies.map(company => {
+        const { _id, companyName, meterNo, contactNum, email1, address, approvedStatus } = company;
+        let paymentStatus = '-';
+        
+        // Setting payment status
+        if(approvedStatus) {
+            const notPaid = receiptModel.findOne({ consumerId: _id, paid: false });
+            if(notPaid) {
+                paymentStatus = false
+            } else {
+                paymentStatus = true
+            };
+        }
 
-    // Delete the reader details
-    await meterReaderModel.findByIdAndDelete(_id);
-
-    res.status(204).end();
+        return ({
+            _id,
+            fullName: companyName,
+            userId: getLoginId(_id),
+            meterNo,
+            contactNum: contactNum,
+            email: email1,
+            address,
+            consumerType: 'Company',
+            paymentStatus,
+            approvedStatus
+        })
+    })
+    const result = individualsDetails.concat(companiesDetails);
+    res.json(result);
 }
 
+// UPDATE
 const editReader = async (req, res) => {
     if(!req.body) {
         return res.status(422).json({message: 'req.body is null'});
@@ -125,129 +232,149 @@ const editReader = async (req, res) => {
     await userModel.updateOne(userFilter, userUpdate);
     res.json({message: 'Reader updated successfully'});
 }
-
-const fetchUsername = async (req, res) => {
+const approveUser = async (req, res) => {
     if(!req.body) {
         return res.status(422).json({message: 'req.body is null'});
     }
-    const loginId = req.body.loginId;
-    try {
-        const findLogin = await userModel.findById(loginId);
-        res.json({userId: findLogin.userId});
-    } catch(err) {
-        console.log(err);
-        res.status(500).json({message: 'Login id error'});
+    const { _id, userType } = req.body;
+    if(!_id || !userType) {
+        return res.status(422).json({message: 'Please fill all the require fields'});
+    }
+    
+    if(userType === 'Individual') {
+        try{
+            const userExists = await usrDetailsModel.findOne({
+                _id
+            });
+            if(!userExists) return res.status(404).json({message: 'Individual not found'});
+            
+            const alreadyApproved = await usrDetailsModel.findOne({
+                _id,
+                approvedStatus: true 
+            });
+            if(alreadyApproved) return res.status(409).json({message: 'User already approved'});
+
+            const meterNo = (await generateMeterNo()).toString();
+            await usrDetailsModel.updateOne(
+                { _id },
+                { $set: { meterNo, approvedStatus: true } }
+            );
+        
+            let username;
+            do {
+                username = 'usr' + Math.floor(100000 + Math.random() * 900000); // Generate a 6-digit number
+            } while (await userModel.findOne({ userId: username })); // Check if the username already exists in the database
+            const password = 'user123'
+    
+            // Create login credentials in database
+            await userModel.create({
+                userId: username,
+                password: await bcrypt.hash(password, 10),
+                userRole: 'individualConsumer'
+            });
+
+            // add to meterlist database
+            await meterModel.create({
+                meterNo,
+                username
+            });
+
+            return res.json({message: `Approve successful username: ${username} password: ${password}`});
+        }
+        catch(err) {
+            console.log('Caught error: ' + err);
+            res.status(500).json({message: 'Error occurred ' + err});
+        }
+
+    }
+    else if(userType === 'Company') {
+        try {
+            const userExists = await companiesModel.findOne({
+                _id
+            });
+            if(!userExists) return res.status(404).json({message: 'Company not found'});
+
+            const alreadyApproved = await companiesModel.findOne({
+                _id,
+                approvedStatus: true 
+            })
+            if(alreadyApproved) return res.status(409).json({message: 'User already approved'});
+
+            const companyDoc = await companiesModel.findById(_id);
+            const requiredMeters = Number(companyDoc.noOfMeters);
+
+            const meterNumbers = [];
+            for(let i=0; i<requiredMeters; i++) {
+                let randomMeterNumber = (await generateMeterNo()).toString();;
+                while (meterNumbers.includes(randomMeterNumber)) {
+                    randomMeterNumber = (await generateMeterNo()).toString();
+                }
+                meterNumbers.push(randomMeterNumber);
+            }
+
+            // update the approve status and meter number in usrDetails
+            const meterNo = meterNumbers.join(', ');
+            await companiesModel.updateOne(
+                { _id },
+                { $set: { meterNo, approvedStatus: true } }
+            );
+
+            let username;
+            do {
+                username = 'com' + Math.floor(100000 + Math.random() * 900000); // Generate a 6-digit number
+            } while (await userModel.findOne({ userId: username })); // Check if the username already exists in the database
+
+            const password = 'company123';
+
+            await userModel.create({
+                userId: username,
+                password: await bcrypt.hash(password, 10),
+                userRole: 'companyConsumer'
+            });
+
+            // add to meterlist database
+            for(let i=0; i<requiredMeters; i++) {
+                await meterModel.create({
+                    meterNo: meterNumbers[i],
+                    username
+                });
+            }
+            
+            return res.json({message: `Approve successful username: ${username} password: ${password}`});
+        } catch (err) {
+            console.log('Caught error: ' + err);
+            res.status(500).json({message: 'Error occurred ' + err});
+        }
     }
 }
 
-const addSchedule = async (req, res) => {
+// DELETE
+const deleteReader = async (req, res) => {
     if(!req.body) {
         return res.status(422).json({message: 'req.body is null'});
     }
-    const { address1, address2, address3, address4, address5, date, shift, readerId } = req.body;
-    if(!address1) {
-        return res.status(422).json({message: 'Address 1 should not be null'});
-    }
-    if(!date || !shift || !readerId) {
-        return res.status(422).json({message: 'Please fill out all the required fields.'});
-    }
-    try {
-        const findReader = await meterReaderModel.findById(readerId);
-        if(!findReader) {
-            return res.status(404).json({message: 'No such meter reader.'});
-        }
-        await scheduleModel.create({
-            address1,
-            address2,
-            address3,
-            address4,
-            address5,
-            date,
-            shift,
-            assignedTo: findReader.fullName,
-            readerId: findReader._id
-        })
-        res.status(201).json({message: 'Scheduled successfully.'});
-    } catch(err) {
-        console.log(err);
-        res.status(500).json({message: 'Server error'});
+    const { _id } = req.body;
+
+    if(!_id) {
+        return res.status(422).json({message: '_id is null'});
     }
 
+    // Find the reader with requested id
+    const reqReader = await meterReaderModel.findById(_id);
 
+    // If reader does not exist
+    if(!reqReader) {
+        return res.status(404).json({message: 'No reader found with such id'});
+    }
+
+    // Delete the reader's login details
+    await userModel.findByIdAndDelete(reqReader.loginId);
+
+    // Delete the reader details
+    await meterReaderModel.findByIdAndDelete(_id);
+
+    res.status(204).end();
 }
 
-const fetchSchedules = async (req, res) => {
-    const schedules = await scheduleModel.find();
-    res.json(schedules);
-}
 
-const getLoginId = (_id) => {
-    const result = userModel.findById(_id);
-    if(result) return result.userID;
-}
-
-const fetchConsumers = async (req, res) => {
-    const individuals = await usrDetailsModel.find();
-    const companies = await companiesModel.find();
-
-    // console.log(individuals);
-    const individualsDetails = individuals.map(individual => {
-        const { _id, firstName, middleName, lastName, meterNo, tel2, email, tole, wardNo, municipality, approvedStatus } = individual;
-        let paymentStatus = '-';
-        
-        // Setting payment status
-        if(approvedStatus) {
-            const notPaid = receiptModel.findOne({ consumerId: _id, paid: false });
-            if(notPaid) {
-                paymentStatus = false
-            } else {
-                paymentStatus = true
-            };
-        }
-
-        return ({
-            _id,
-            fullName: middleName ? `${firstName} ${middleName} ${lastName}` : `${firstName} ${lastName}`,
-            userId: getLoginId(_id),
-            meterNo,
-            contactNum: tel2,
-            email,
-            address: `${wardNo}-${municipality}, ${tole}`,
-            consumerType: 'Individual',
-            paymentStatus,
-            approvedStatus
-        })
-    })
-
-    const companiesDetails = companies.map(company => {
-        const { _id, companyName, meterNo, contactNum, email1, address, approvedStatus } = company;
-        let paymentStatus = '-';
-        
-        // Setting payment status
-        if(approvedStatus) {
-            const notPaid = receiptModel.findOne({ consumerId: _id, paid: false });
-            if(notPaid) {
-                paymentStatus = false
-            } else {
-                paymentStatus = true
-            };
-        }
-
-        return ({
-            _id,
-            fullName: companyName,
-            userId: getLoginId(_id),
-            meterNo,
-            contactNum: contactNum,
-            email: email1,
-            address,
-            consumerType: 'Company',
-            paymentStatus,
-            approvedStatus
-        })
-    })
-    const result = individualsDetails.concat(companiesDetails);
-    res.json(result);
-}
-
-module.exports = { addReader, fetchReaders, deleteReader, editReader, fetchUsername, addSchedule, fetchSchedules, fetchConsumers };
+module.exports = { addReader, fetchReaders, deleteReader, editReader, fetchUsername, addSchedule, fetchSchedules, fetchConsumers, approveUser };
