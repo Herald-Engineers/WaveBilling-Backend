@@ -11,6 +11,14 @@ const companiesModel = require('../models/companiesModel');
 const meterModel = require('../models/meterModel');
 const bcrypt = require('bcrypt');
 
+// Cloudinary configuration 
+const cloudinary = require('cloudinary').v2;
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
 // HELPER
 
 const generateMeterNo = async () => {
@@ -407,6 +415,77 @@ const deleteReader = async (req, res) => {
 
     res.status(204).end();
 }
+const deleteUser = async (req, res) => {
+    if(!req.body) {
+        return res.status(422).json({message: 'req.body is null'});
+    }
+    const { _id, userType } = req.body;
+    if(!_id) {
+        return res.status(422).json({message: '_id is null'});
+    }
+    if(!userType) {
+        return res.status(422).json({message: 'userType is null'});
+    }
+
+    if(userType == 'Individual') {
+        // Get the document of the user in usrDetails
+        const userDoc = await usrDetailsModel.findById(_id);
+        if(!userDoc) {
+            return res.status(404).json({message: 'User not found.'});
+        } else if(!userDoc.approvedStatus) {
+            return res.status(404).json({message: 'User not approved yet'});
+        }
+
+        // Delete the submitted documents from cloudinary
+        await cloudinary.uploader.destroy(`GuestUserDocs/${userDoc.citizenshipNo}`, function(error, result) {
+            console.log(result);
+        });
+        await cloudinary.uploader.destroy(`GuestUserDocs/${userDoc.houseNo}_${userDoc.citizenshipNo}`, function(error, result) {
+            console.log(result);
+        });
+
+        // Delete the receipts of that user
+        await receiptModel.deleteMany({ consumerId: _id });        
+        
+        // Get the document of the user in users
+        const userLogin = await userModel.findById(userDoc.loginId);
+        
+        // Delete the meter associated with that user
+        await meterModel.deleteMany({ username: userLogin.userId });
+
+        // Delete the user from users list
+        await userModel.deleteOne({ _id: userLogin._id });
+
+        // Delete the user from the userDetails
+        await usrDetailsModel.deleteOne({ _id });
+        res.status(204).end();
+
+    } else if(userType == 'Company') {
+        // Get the document of the user in usrDetails
+        const userDoc = await companiesModel.findById(_id);
+        if(!userDoc) {
+            return res.status(404).json({message: 'User not found.'});
+        }
+
+        // Delete the receipts of that user
+        await receiptModel.deleteMany({ consumerId: _id });        
+        
+        // Get the document of the user in users
+        const userLogin = await userModel.findById(userDoc.loginId);
+
+        // Delete the meter associated with that user
+        await meterModel.deleteMany({ username: userLogin.userId });
+
+        // Delete the user from users list
+        await userModel.deleteOne({ _id: userLogin._id });
+
+        // Delete the user from the userDetails
+        await companiesModel.deleteOne({ _id });
+        res.status(204).end();
+    } else {
+        return res.status(404).json({message: 'No such userType'});
+    }
+}
 
 
-module.exports = { addReader, fetchReaders, deleteReader, editReader, fetchUsername, addSchedule, fetchSchedules, fetchConsumers, approveUser };
+module.exports = { addReader, fetchReaders, deleteReader, editReader, fetchUsername, addSchedule, fetchSchedules, fetchConsumers, approveUser, deleteUser };
