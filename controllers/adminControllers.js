@@ -12,10 +12,7 @@ const meterModel = require('../models/meterModel');
 const bcrypt = require('bcrypt');
 
 // HELPER
-const getLoginId = (_id) => {
-    const result = userModel.findById(_id);
-    if(result) return result.userID;
-}
+
 const generateMeterNo = async () => {
     const min = 10000; // Minimum 5-digit number
     const max = 99999; // Maximum 5-digit number
@@ -118,18 +115,38 @@ const fetchSchedules = async (req, res) => {
     const schedules = await scheduleModel.find();
     res.json(schedules);
 }
+
 const fetchConsumers = async (req, res) => {
     const individuals = await usrDetailsModel.find();
     const companies = await companiesModel.find();
 
     // console.log(individuals);
-    const individualsDetails = individuals.map(individual => {
-        const { _id, firstName, middleName, lastName, meterNo, tel2, email, tole, wardNo, municipality, approvedStatus } = individual;
+    const individualsDetails = await Promise.all(individuals.map(async (individual) => {
+        const {
+            _id,
+            firstName,
+            middleName,
+            lastName,
+            meterNo,
+            tel2,
+            email,
+            tole,
+            wardNo,
+            municipality,
+            approvedStatus,
+            loginId
+        } = individual;
+
+        let userId = '-';
+        if (loginId) {
+            const user = await userModel.findById(loginId);
+            userId = user ? user.userId : "-";
+        }
         let paymentStatus = '-';
         
         // Setting payment status
         if(approvedStatus) {
-            const notPaid = receiptModel.findOne({ consumerId: _id, paid: false });
+            const notPaid = await receiptModel.findOne({ consumerId: _id, paid: false });
             if(notPaid) {
                 paymentStatus = false
             } else {
@@ -140,7 +157,7 @@ const fetchConsumers = async (req, res) => {
         return ({
             _id,
             fullName: middleName ? `${firstName} ${middleName} ${lastName}` : `${firstName} ${lastName}`,
-            userId: getLoginId(_id),
+            userId,
             meterNo,
             contactNum: tel2,
             email,
@@ -149,15 +166,20 @@ const fetchConsumers = async (req, res) => {
             paymentStatus,
             approvedStatus
         })
-    })
+    }))
 
-    const companiesDetails = companies.map(company => {
-        const { _id, companyName, meterNo, contactNum, email1, address, approvedStatus } = company;
+    const companiesDetails = await Promise.all(companies.map(async (company) => {
+        const { _id, companyName, meterNo, contactNum, email1, address, approvedStatus, loginId } = company;
+        let userId = '-';
+        if(loginId) {
+            const user = await userModel.findById(loginId);
+            userId = user ? user.userId : "-";
+        }
         let paymentStatus = '-';
         
         // Setting payment status
         if(approvedStatus) {
-            const notPaid = receiptModel.findOne({ consumerId: _id, paid: false });
+            const notPaid = await receiptModel.findOne({ consumerId: _id, paid: false });
             if(notPaid) {
                 paymentStatus = false
             } else {
@@ -168,7 +190,7 @@ const fetchConsumers = async (req, res) => {
         return ({
             _id,
             fullName: companyName,
-            userId: getLoginId(_id),
+            userId,
             meterNo,
             contactNum: contactNum,
             email: email1,
@@ -177,7 +199,7 @@ const fetchConsumers = async (req, res) => {
             paymentStatus,
             approvedStatus
         })
-    })
+    }));
     const result = individualsDetails.concat(companiesDetails);
     res.json(result);
 }
