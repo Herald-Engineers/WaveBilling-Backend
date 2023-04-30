@@ -1,7 +1,6 @@
 require('dotenv').config()
 const express = require('express');
 const jwt = require('jsonwebtoken');
-
 const userModel = require('../models/userModel');
 const meterReaderModel = require('../models/meterReaderModel');
 const usrDetailsModel = require('../models/usrDetailsModel');
@@ -9,8 +8,8 @@ const receiptModel = require('../models/receiptModel');
 const scheduleModel = require('../models/scheduleModel');
 const companiesModel = require('../models/companiesModel');
 const meterModel = require('../models/meterModel');
+const issueModel = require('../models/issueModel');
 const bcrypt = require('bcrypt');
-
 // Cloudinary configuration 
 const cloudinary = require('cloudinary').v2;
 cloudinary.config({
@@ -19,8 +18,10 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// HELPER
 
+
+
+// HELPER =============================================================================================================
 const generateMeterNo = async () => {
     const min = 10000; // Minimum 5-digit number
     const max = 99999; // Maximum 5-digit number
@@ -31,7 +32,10 @@ const generateMeterNo = async () => {
     return meterNo;
 }
 
-// CREATE
+
+
+
+// CREATE =============================================================================================================
 const addReader = async (req, res) => {
     if(!req.body) {
         return res.status(422).json({message: 'req.body is null'});
@@ -101,10 +105,17 @@ const addSchedule = async (req, res) => {
 
 }
 
-// READ
+
+
+
+// READ =============================================================================================================
 const fetchReaders = async (req, res) => {
-    const readers = await meterReaderModel.find();
-    res.json(readers);
+    try {
+        const readers = await meterReaderModel.find();
+        res.json(readers);
+    } catch(err) {
+        res.status(500).json({ message: 'Server errror: ' + err });
+    }
 }
 const fetchUsername = async (req, res) => {
     if(!req.body) {
@@ -212,7 +223,14 @@ const fetchConsumers = async (req, res) => {
     res.json(result);
 }
 
-// UPDATE
+const fetchIssues = async (req, res) => {
+    res.json(await issueModel.find());
+}
+
+
+
+
+// UPDATE =============================================================================================================
 const editReader = async (req, res) => {
     if(!req.body) {
         return res.status(422).json({message: 'req.body is null'});
@@ -388,7 +406,10 @@ const approveUser = async (req, res) => {
     }
 }
 
-// DELETE
+
+
+
+// DELETE =============================================================================================================
 const deleteReader = async (req, res) => {
     if(!req.body) {
         return res.status(422).json({message: 'req.body is null'});
@@ -539,4 +560,4 @@ const rejectRequest = async (req, res) => {
 }
 
 
-module.exports = { addReader, fetchReaders, deleteReader, editReader, fetchUsername, addSchedule, fetchSchedules, fetchConsumers, approveUser, deleteUser, rejectRequest };
+module.exports = { addReader, fetchReaders, deleteReader, editReader, fetchUsername, addSchedule, fetchSchedules, fetchConsumers, approveUser, deleteUser, rejectRequest, fetchIssues };
