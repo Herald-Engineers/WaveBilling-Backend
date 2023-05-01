@@ -5,6 +5,7 @@ const userModel = require('../models/userModel');
 const companiesModel = require('../models/companiesModel');
 const usrDetailsModel = require('../models/usrDetailsModel');
 const meterReaderModel = require('../models/meterReaderModel');
+const receiptModel = require('../models/receiptModel');
 const issueModel = require('../models/issueModel');
 
 const bcrypt = require('bcrypt');
@@ -18,6 +19,10 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
+
+
+
+// CREATE ==========================================================================================================================
 const registerCompany = async (req, res) => {
     if(!req.body) {
         return res.status(422).json({message: 'req.body is null'});
@@ -275,4 +280,28 @@ const submitIssue = async (req, res) => {
     }
 }
 
-module.exports = { login, registerCompany, registerUser, resetPassword, contactWavebilling, submitIssue }; 
+
+
+// READ ==========================================================================================================================
+const fetchMyBills = async (req, res) => {
+    console.log(req.user);
+    const { userRole, id } = req.user;
+    let userDoc;
+    if(userRole == 'individualConsumer') {
+        userDoc = await usrDetailsModel.findOne({
+            loginId: id
+        });
+    }
+    else if(userRole == 'companyConsumer') {
+        userDoc = await companiesModel.findOne({
+            loginId: id
+        });
+    } else {
+        return res.status(404).json({ message: 'You don\'t have permission for this operation'});
+    }
+    res.json(await receiptModel.find({
+        consumerId: userDoc._id
+    }));
+}
+
+module.exports = { login, registerCompany, registerUser, resetPassword, contactWavebilling, submitIssue, fetchMyBills }; 
