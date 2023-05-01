@@ -47,7 +47,6 @@ const fetchConsumers = async(req, res) => {
         return ({
             _id,
             name: middleName ? `${firstName} ${middleName} ${lastName}` : `${firstName} ${lastName}`,
-            userId,
             meterNo
         })
     }))
