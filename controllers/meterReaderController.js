@@ -4,7 +4,11 @@ const usrDetailsModel = require('../models/usrDetailsModel');
 const companiesModel = require('../models/companiesModel');
 const scheduleModel = require('../models/scheduleModel');
 const meterReaderModel = require('../models/meterReaderModel');
+const receiptModel = require('../models/receiptModel');
 
+
+
+// READ =============================================================================================================
 const fetchSchedule = async(req, res) => {
     try {
         const user_id = await meterReaderModel.findOne({
@@ -62,4 +66,79 @@ const fetchConsumers = async(req, res) => {
     res.json(result);
 }
 
-module.exports = { fetchSchedule, fetchConsumers };
+const fetchPreviousReading = async (req, res) => {
+    if(!req.body) {
+        return res.status(422).json({ message: 'req.body is null' });
+    }
+    const { consumerId } = req.body;
+    if(!consumerId) {
+        return res.status(422).json({ message: 'consumerId is null' });
+    }
+
+    const latestBill = await receiptModel.findOne({
+        consumerId
+    }, {}, { sort: { billDate: -1 }, limit: 1 }, function(err, latestBill) {
+        if (err) {
+            console.log(err);
+        } else {
+          return latestBill;
+        }
+    });
+
+    const previousReading = latestBill?latestBill.currentReading:0;
+    res.json({ previousReading });
+}
+
+
+
+// CREATE =============================================================================================================
+const addBill = async (req, res) => {
+    if(!req.body) {
+        return res.status(422).json({ message: 'req.body is null' });
+    }
+
+    const { consumerId, currentReading, unitPrice } = req.body;
+
+    if(!consumerId || !currentReading || !unitPrice) {
+        return res.status(422).json({ message: 'Please fill all the fields' });
+    }
+
+    const alreadyExists = await receiptModel.find({
+        consumerId,
+        currentReading
+    })
+
+    if(alreadyExists) { 
+        return res.status(409).json({ message: 'Bill has been already added for this reading' });
+    }
+
+    const latestBill = await receiptModel.findOne({
+        consumerId
+    }, {}, { sort: { billDate: -1 }, limit: 1 }, function(err, latestBill) {
+        if (err) {
+            console.log(err);
+        } else {
+          return latestBill;
+        }
+    });
+
+    const previousReading = latestBill?latestBill.currentReading:0;
+
+    const billDate = new Date().toISOString().slice(0, 10);
+
+    const billAmount = (currentReading - previousReading) * unitPrice;
+
+    await receiptModel.create({
+        billDate,
+        consumerId,
+        previousReading,
+        currentReading,
+        unitPrice,
+        billAmount
+    });
+
+    res.json({ message: 'Receipt added successfully' });
+}
+
+
+module.exports = { fetchSchedule, fetchConsumers, addBill, fetchPreviousReading };

@@ -1,23 +1,23 @@
 const mongoose = require('mongoose');
 
 const receiptSchema = new mongoose.Schema({
-    fullName: {
-        type: String,
-        required: true
-    },
-    consumerType: {
-        type: String,
+    billDate: {
+        type: Date,
         required: true
     },
     consumerId: {
         type: mongoose.Schema.Types.ObjectId,
         required: true
     },
-    month: {
-        type: String,
+    previousReading: {
+        type: Number,
         required: true
     },
-    units: {
+    currentReading: {
+        type: Number,
+        required: true
+    },
+    unitPrice: {
         type: Number,
         required: true
     },
