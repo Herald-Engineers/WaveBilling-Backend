@@ -103,7 +103,7 @@ const addBill = async (req, res) => {
         return res.status(422).json({ message: 'Please fill all the fields' });
     }
 
-    const alreadyExists = await receiptModel.find({
+    const alreadyExists = await receiptModel.findOne({
         consumerId,
         currentReading
     })
