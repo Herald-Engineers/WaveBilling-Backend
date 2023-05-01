@@ -66,13 +66,10 @@ const fetchConsumers = async(req, res) => {
 }
 
 const fetchPreviousReading = async (req, res) => {
-    if(!req.params) {
-        return res.status(422).json({ message: 'req.params is null' });
-    }
-    const { consumerId } = req.params;
-    if(!consumerId) {
+    if(!req.query) {
         return res.status(422).json({ message: 'consumerId is null' });
     }
+    const { consumerId } = req.query;
 
     const latestBill = await receiptModel.findOne({
         consumerId
