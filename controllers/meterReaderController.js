@@ -66,10 +66,10 @@ const fetchConsumers = async(req, res) => {
 }
 
 const fetchPreviousReading = async (req, res) => {
-    if(!req.body) {
-        return res.status(422).json({ message: 'req.body is null' });
+    if(!req.params) {
+        return res.status(422).json({ message: 'req.params is null' });
     }
-    const { consumerId } = req.body;
+    const { consumerId } = req.params;
     if(!consumerId) {
         return res.status(422).json({ message: 'consumerId is null' });
     }
