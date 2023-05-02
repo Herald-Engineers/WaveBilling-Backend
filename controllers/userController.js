@@ -21,6 +21,47 @@ cloudinary.config({
 
 
 
+function calculateRebateAndFine(billDate, dueBy, billAmount) {
+    const billTimestamp = new Date(billDate).getTime(); // Get timestamp of bill date
+    const dueByTimestamp = new Date(dueBy).getTime(); // Get timestamp of due by date
+    const currentDateTimestamp = Date.now(); // Get timestamp of current date
+    const daysSinceDueBy = Math.floor((currentDateTimestamp - dueByTimestamp) / (1000 * 60 * 60 * 24)); // Calculate number of days past due by date
+    const daysSinceBill = Math.floor((currentDateTimestamp - billTimestamp) / (1000 * 60 * 60 * 24)); // Calculate number of days since bill date
+    let rebatePercent = 0;
+    let finePercent = 0;
+
+    if (daysSinceBill <= 2) {
+        rebatePercent = 10;
+    } else if (daysSinceBill <= 5) {
+        rebatePercent = 5;
+    }
+
+    if (daysSinceDueBy > 20) {
+        finePercent = 100;
+    } else if (daysSinceDueBy > 15) {
+        finePercent = 20;
+    } else if (daysSinceDueBy > 12) {
+        finePercent = 15;
+    } else if (daysSinceDueBy > 10) {
+        finePercent = 10;
+    }
+
+    const rebateAmount = billAmount * (rebatePercent / 100);
+    const fineAmount = billAmount * (finePercent / 100);
+    const totalAmount = billAmount - rebateAmount + fineAmount;
+
+    return {
+        rebatePercent,
+        finePercent,
+        rebateAmount,
+        fineAmount,
+        totalAmount
+    };
+}
+  
+
+
+
 
 // CREATE ==========================================================================================================================
 const registerCompany = async (req, res) => {
@@ -284,24 +325,78 @@ const submitIssue = async (req, res) => {
 
 // READ ==========================================================================================================================
 const fetchMyBills = async (req, res) => {
-    console.log(req.user);
     const { userRole, id } = req.user;
+    const userId = req.user.userId;
     let userDoc;
+    let consumerName, consumerAddress;
     if(userRole == 'individualConsumer') {
         userDoc = await usrDetailsModel.findOne({
             loginId: id
         });
+        if(userDoc) {
+            const { firstName, middleName, lastName, tole, municipality, wardNo, province  } = userDoc;
+            consumerName = middleName?`${firstName} ${middleName} ${lastName}`:`${firstName} ${lastName}`;
+            consumerAddress = `${tole}, ${municipality}-${wardNo} ${province}`;
+        } else {
+            return;
+        }
     }
     else if(userRole == 'companyConsumer') {
         userDoc = await companiesModel.findOne({
             loginId: id
         });
+        if(userDoc) {
+            const { companyName, address  } = userDoc;
+            consumerName = companyName;
+            consumerAddress = address;
+        } else {
+            return;
+        }
     } else {
         return res.status(404).json({ message: 'You don\'t have permission for this operation'});
     }
-    res.json(await billModel.find({
+
+    
+    console.log(userId)
+    console.log(consumerName)
+    console.log(consumerAddress)
+
+
+    const myBills = await billModel.find({
         consumerId: userDoc._id
-    }));
+    })
+
+    const consumerDetails = {
+        consumerName,
+        consumerAddress,
+        userId
+    }
+
+    if(!myBills) {
+        res.send('no bill found');
+    }
+    
+    const resData = await Promise.all(myBills.map(async (bill) => {
+        const { billDate, billAmount } = bill;
+        const dueDate = new Date(billDate);
+        const dueBy = new Date(dueDate.setDate(billDate.getDate() + 10))
+        const { finePercent, rebatePercent, rebateAmount, fineAmount, totalAmount } = calculateRebateAndFine(billDate, dueBy, billAmount);
+        return ({
+            _id: bill._id,
+            ...consumerDetails,
+            billDate,
+            dueBy,
+            billAmount,
+            finePercent,
+            rebatePercent,
+            rebateAmount,
+            fineAmount,
+            totalAmount
+        })
+    }))
+    console.log(req.user);
+    
+    res.json(resData);
 }
 
 module.exports = { login, registerCompany, registerUser, resetPassword, contactWavebilling, submitIssue, fetchMyBills }; 
