@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const userModel = require('../models/userModel');
 const meterReaderModel = require('../models/meterReaderModel');
 const usrDetailsModel = require('../models/usrDetailsModel');
-const receiptModel = require('../models/receiptModel');
+const billModel = require('../models/billModel');
 const scheduleModel = require('../models/scheduleModel');
 const companiesModel = require('../models/companiesModel');
 const meterModel = require('../models/meterModel');
@@ -165,7 +165,7 @@ const fetchConsumers = async (req, res) => {
         
         // Setting payment status
         if(approvedStatus) {
-            const notPaid = await receiptModel.findOne({ consumerId: _id, paid: false });
+            const notPaid = await billModel.findOne({ consumerId: _id, paid: false });
             if(notPaid) {
                 paymentStatus = false
             } else {
@@ -198,7 +198,7 @@ const fetchConsumers = async (req, res) => {
         
         // Setting payment status
         if(approvedStatus) {
-            const notPaid = await receiptModel.findOne({ consumerId: _id, paid: false });
+            const notPaid = await billModel.findOne({ consumerId: _id, paid: false });
             if(notPaid) {
                 paymentStatus = false
             } else {
@@ -465,8 +465,8 @@ const deleteUser = async (req, res) => {
             console.log(result);
         });
 
-        // Delete the receipts of that user
-        await receiptModel.deleteMany({ consumerId: _id });        
+        // Delete the bill of that user
+        await billModel.deleteMany({ consumerId: _id });        
         
         // Get the document of the user in users
         const userLogin = await userModel.findById(userDoc.loginId);
@@ -490,8 +490,8 @@ const deleteUser = async (req, res) => {
             return res.status(404).json({message: 'User not approved yet'});
         }
 
-        // Delete the receipts of that user
-        await receiptModel.deleteMany({ consumerId: _id });        
+        // Delete the bills of that user
+        await billModel.deleteMany({ consumerId: _id });        
         
         // Get the document of the user in users
         const userLogin = await userModel.findById(userDoc.loginId);

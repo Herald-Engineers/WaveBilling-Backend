@@ -4,7 +4,7 @@ const usrDetailsModel = require('../models/usrDetailsModel');
 const companiesModel = require('../models/companiesModel');
 const scheduleModel = require('../models/scheduleModel');
 const meterReaderModel = require('../models/meterReaderModel');
-const receiptModel = require('../models/receiptModel');
+const billModel = require('../models/billModel');
 
 
 
@@ -71,7 +71,7 @@ const fetchPreviousReading = async (req, res) => {
     }
     const { consumerId } = req.query;
 
-    const latestBill = await receiptModel.findOne({
+    const latestBill = await billModel.findOne({
         consumerId
     }, {}, { sort: { billDate: -1 }, limit: 1 }, function(err, latestBill) {
         if (err) {
@@ -99,7 +99,7 @@ const addBill = async (req, res) => {
         return res.status(422).json({ message: 'Please fill all the fields' });
     }
 
-    const alreadyExists = await receiptModel.findOne({
+    const alreadyExists = await billModel.findOne({
         consumerId,
         currentReading
     })
@@ -108,7 +108,7 @@ const addBill = async (req, res) => {
         return res.status(409).json({ message: 'Bill has been already added for this reading' });
     }
 
-    const latestBill = await receiptModel.findOne({
+    const latestBill = await billModel.findOne({
         consumerId
     }, {}, { sort: { billDate: -1 }, limit: 1 }, function(err, latestBill) {
         if (err) {
@@ -124,7 +124,7 @@ const addBill = async (req, res) => {
 
     const billAmount = (currentReading - previousReading) * unitPrice;
 
-    await receiptModel.create({
+    await billModel.create({
         billDate,
         consumerId,
         previousReading,
@@ -133,7 +133,7 @@ const addBill = async (req, res) => {
         billAmount
     });
 
-    res.json({ message: 'Receipt added successfully' });
+    res.json({ message: 'bill added successfully' });
 }
 
 

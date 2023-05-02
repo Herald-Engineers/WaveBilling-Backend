@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const receiptSchema = new mongoose.Schema({
+const billSchema = new mongoose.Schema({
     billDate: {
         type: Date,
         required: true
@@ -31,4 +31,4 @@ const receiptSchema = new mongoose.Schema({
     }
 })
 
-module.exports = mongoose.model('receipts', receiptSchema);
+module.exports = mongoose.model('bills', billSchema);

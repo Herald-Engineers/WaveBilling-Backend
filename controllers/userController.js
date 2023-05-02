@@ -5,7 +5,7 @@ const userModel = require('../models/userModel');
 const companiesModel = require('../models/companiesModel');
 const usrDetailsModel = require('../models/usrDetailsModel');
 const meterReaderModel = require('../models/meterReaderModel');
-const receiptModel = require('../models/receiptModel');
+const billModel = require('../models/billModel');
 const issueModel = require('../models/issueModel');
 
 const bcrypt = require('bcrypt');
@@ -299,7 +299,7 @@ const fetchMyBills = async (req, res) => {
     } else {
         return res.status(404).json({ message: 'You don\'t have permission for this operation'});
     }
-    res.json(await receiptModel.find({
+    res.json(await billModel.find({
         consumerId: userDoc._id
     }));
 }
