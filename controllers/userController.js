@@ -7,6 +7,8 @@ const usrDetailsModel = require('../models/usrDetailsModel');
 const meterReaderModel = require('../models/meterReaderModel');
 const billModel = require('../models/billModel');
 const issueModel = require('../models/issueModel');
+const advancePaymentModel = require('../models/advancePaymentModel');
+const receiptModel = require('../models/receiptModel');
 
 const bcrypt = require('bcrypt');
 const nodemailer = require('nodemailer');
@@ -64,6 +66,114 @@ function calculateRebateAndFine(billDate, dueBy, billAmount) {
 
 
 // CREATE ==========================================================================================================================
+const payBill = async (req, res) => {
+    if (!req.body || Object.keys(req.body).length === 0) {
+        return res.status(400).json({ error: 'No data found in the request body.' });
+    }
+    const { billId, advancePayment, paymentMode } = req.body;
+    if(!billId) {
+        return res.status(400).json({ error: 'The billId is missing from the request body.' });
+    } else if(!paymentMode) {
+        return res.status(400).json({ error: 'The paymentMode is missing from the request body.' });
+    }
+
+    const { userRole, id } = req.user;
+    const userId = req.user.userId;
+    let userDoc;
+    let consumerName, consumerAddress, meterNo;
+    if(userRole == 'individualConsumer') {
+        userDoc = await usrDetailsModel.findOne({
+            loginId: id
+        });
+        if(userDoc) {
+            const { firstName, middleName, lastName, tole, municipality, wardNo, province  } = userDoc;
+            meterNo = userDoc.meterNo;
+            consumerName = middleName?`${firstName} ${middleName} ${lastName}`:`${firstName} ${lastName}`;
+            consumerAddress = `${tole}, ${municipality}-${wardNo} ${province}`;
+        } else {
+            return;
+        }
+    }
+    else if(userRole == 'companyConsumer') {
+        userDoc = await companiesModel.findOne({
+            loginId: id
+        });
+        if(userDoc) {
+            const { companyName, address  } = userDoc;
+            meterNo = userDoc.meterNo;
+            consumerName = companyName;
+            consumerAddress = address;
+        } else {
+            return;
+        }
+    } else {
+        return res.status(404).json({ message: 'You don\'t have permission for this operation'});
+    }
+
+    // Check if there is advance payment and it is a number
+    if(advancePayment) {
+        if(isNaN(advancePayment)) {
+            return res.status(400).json({ error: 'Advance payment should be a number.'} );
+        }
+    }
+
+    try {
+        // Find the bill of the consumer
+        const bill = await billModel.findById(billId);
+        if(!bill) {
+            return res.status(404).json({ error: 'Bill not found.' });
+        } else if(bill.paid) {
+            return res.status(400).json({ error: 'Bill has already been paid.' });
+        }
+
+        // Change the paid status in bill and save it to database
+        bill.paid = true;
+        await bill.save();
+
+        // If there is advance payment, add it to database
+        if(advancePayment) {
+            const myAdvance = await advancePaymentModel.findOne({
+                consumerId: userId
+            });
+
+            if(myAdvance) {
+                myAdvance.advanceAmount += Number(advancePayment);
+                myAdvance.save();
+            } else{
+                await advancePaymentModel.create({
+                    paymentDate: new Date(),
+                    consumerId: userId,
+                    advanceAmount: Number(advancePayment)
+                });
+            }
+        }
+
+        const { billDate, billAmount } = bill;
+        const dueDate = new Date(billDate);
+        const dueBy = new Date(dueDate.setDate(billDate.getDate() + 10))
+        const { finePercent, rebatePercent, rebateAmount, fineAmount, totalAmount } = calculateRebateAndFine(billDate, dueBy, billAmount);
+        
+        await receiptModel.create({
+            billId: bill._id,
+            paymentDate: new Date(),
+            consumerName,
+            consumerId: userId,
+            consumerAddress,
+            meterNo,
+            billAmount: billAmount,
+            finePercent,
+            rebatePercent,
+            rebateAmount,
+            fineAmount,
+            totalAmount,
+            paymentMode
+        });
+        return res.json({ message: 'Bill has been paid successfully' });
+
+    } catch(err) {
+        return res.status(500).json({ error: err.message });
+    }
+}
 const registerCompany = async (req, res) => {
     if(!req.body) {
         return res.status(422).json({message: 'req.body is null'});
@@ -356,12 +466,6 @@ const fetchMyBills = async (req, res) => {
         return res.status(404).json({ message: 'You don\'t have permission for this operation'});
     }
 
-    
-    console.log(userId)
-    console.log(consumerName)
-    console.log(consumerAddress)
-
-
     const myBills = await billModel.find({
         consumerId: userDoc._id
     })
@@ -394,9 +498,8 @@ const fetchMyBills = async (req, res) => {
             totalAmount
         })
     }))
-    console.log(req.user);
-    
+
     res.json(resData);
 }
 
-module.exports = { login, registerCompany, registerUser, resetPassword, contactWavebilling, submitIssue, fetchMyBills }; 
+module.exports = { login, registerCompany, registerUser, resetPassword, contactWavebilling, submitIssue, fetchMyBills, payBill }; 
