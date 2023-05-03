@@ -529,10 +529,42 @@ const fetchMyReceipts = async (req, res) => {
     try {
         res.json(await receiptModel.find({
             consumerId: userId
-        }));
+        }));    
     } catch(err) {
         res.status(500).json({message: "Server error"});
     }
 }
 
-module.exports = { login, registerCompany, registerUser, resetPassword, contactWavebilling, submitIssue, fetchMyBills, payBill, fetchMyReceipts }; 
+const fetchReport = async (req, res) => {
+    const { id, userRole } = req.user;
+    try {
+        let userDoc;
+        if(userRole == 'companyConsumer') {
+            userDoc = await companiesModel.findOne({
+                loginId: id
+            })
+        } else if (userRole == 'individualConsumer') {
+            userDoc = await usrDetailsModel.findOne({
+                loginId: id
+            })
+        } else {
+            return res.status(401).json({ message: 'You are unauthorized to perform this action' })
+        }
+        const consumerId = userDoc._id;
+        const myBills = await billModel.find({
+            consumerId
+        });
+        const report = myBills.map((bill) => {
+            return ({
+                year: bill.billDate.getFullYear(),
+                month: bill.billDate.getMonth(),
+                units: bill.currentReading - bill.previousReading
+            })
+        })
+        res.json(report);
+    } catch(err) {
+        res.status(500).json({ message: 'Error occurred: ' + err });
+    }
+}
+
+module.exports = { login, registerCompany, registerUser, resetPassword, contactWavebilling, submitIssue, fetchMyBills, payBill, fetchMyReceipts, fetchReport }; 
