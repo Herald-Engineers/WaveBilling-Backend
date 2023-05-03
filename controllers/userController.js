@@ -524,4 +524,15 @@ const fetchMyBills = async (req, res) => {
     res.json(resData);
 }
 
-module.exports = { login, registerCompany, registerUser, resetPassword, contactWavebilling, submitIssue, fetchMyBills, payBill }; 
+const fetchMyReceipts = async (req, res) => {
+    const userId = req.user.userId;
+    try {
+        res.json(await receiptModel.find({
+            consumerId: userId
+        }));
+    } catch(err) {
+        res.status(500).json({message: "Server error"});
+    }
+}
+
+module.exports = { login, registerCompany, registerUser, resetPassword, contactWavebilling, submitIssue, fetchMyBills, payBill, fetchMyReceipts }; 
