@@ -567,4 +567,12 @@ const fetchReport = async (req, res) => {
     }
 }
 
-module.exports = { login, registerCompany, registerUser, resetPassword, contactWavebilling, submitIssue, fetchMyBills, payBill, fetchMyReceipts, fetchReport }; 
+const fetchBillDetails = async (req, res) => {
+    const { _id } = req.params;
+    if(!_id) {
+        return res.status(422).json({ message: '_id is required' });
+    }
+    res.json(await billModel.findById(_id));
+}
+
+module.exports = { login, registerCompany, registerUser, resetPassword, contactWavebilling, submitIssue, fetchMyBills, payBill, fetchMyReceipts, fetchReport, fetchBillDetails }; 
