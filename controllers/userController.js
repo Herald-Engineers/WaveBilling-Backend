@@ -130,7 +130,32 @@ const payBill = async (req, res) => {
         bill.paid = true;
         await bill.save();
 
-        // If there is advance payment, add it to database
+        const { billDate } = bill;
+        let { billAmount } = bill;
+        const dueDate = new Date(billDate);
+        const dueBy = new Date(dueDate.setDate(billDate.getDate() + 10))
+        let { finePercent, rebatePercent, rebateAmount, fineAmount, totalAmount } = calculateRebateAndFine(billDate, dueBy, billAmount);
+        let finalAmount = totalAmount;
+
+        let hasAdvance = await advancePaymentModel.findOne({
+            consumerId: userId
+        });
+        const previousAdvanceAmount = hasAdvance?hasAdvance.advanceAmount:0;
+
+        // If customer has paid advance before
+        if(hasAdvance) {
+            if(finalAmount >= hasAdvance.advanceAmount) {
+                finalAmount -= hasAdvance.advanceAmount;
+                hasAdvance.advanceAmount = 0;
+                await hasAdvance.save();
+            } else {
+                finalAmount = 0;
+                hasAdvance.advanceAmount -= finalAmount;
+                await hasAdvance.save();
+            }
+        }
+
+        // If advance payment is also made, add it to database
         if(advancePayment) {
             const myAdvance = await advancePaymentModel.findOne({
                 consumerId: userId
@@ -148,11 +173,6 @@ const payBill = async (req, res) => {
             }
         }
 
-        const { billDate, billAmount } = bill;
-        const dueDate = new Date(billDate);
-        const dueBy = new Date(dueDate.setDate(billDate.getDate() + 10))
-        const { finePercent, rebatePercent, rebateAmount, fineAmount, totalAmount } = calculateRebateAndFine(billDate, dueBy, billAmount);
-        
         await receiptModel.create({
             billId: bill._id,
             paymentDate: new Date(),
@@ -166,6 +186,8 @@ const payBill = async (req, res) => {
             rebateAmount,
             fineAmount,
             totalAmount,
+            previousAdvanceAmount,
+            finalAmount,
             paymentMode
         });
         return res.json({ message: 'Bill has been paid successfully' });
@@ -477,7 +499,7 @@ const fetchMyBills = async (req, res) => {
     }
 
     if(!myBills) {
-        res.send('no bill found');
+        res.status(404).json({ message: 'no bill found' });
     }
     
     const resData = await Promise.all(myBills.map(async (bill) => {

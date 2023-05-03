@@ -35,6 +35,14 @@ const receiptSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
+    previousAdvanceAmount: {
+        type: Number,
+        required: true
+    },
+    finalAmount: {
+        type: Number,
+        required: true
+    },
     paymentMode: {
         type: String,
         required: true
