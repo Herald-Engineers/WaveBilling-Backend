@@ -173,7 +173,7 @@ const payBill = async (req, res) => {
             }
         }
 
-        await receiptModel.create({
+        const receipt = await receiptModel.create({
             billId: bill._id,
             paymentDate: new Date(),
             consumerName,
@@ -190,7 +190,7 @@ const payBill = async (req, res) => {
             finalAmount,
             paymentMode
         });
-        return res.json({ message: 'Bill has been paid successfully' });
+        return res.json(receipt);
 
     } catch(err) {
         return res.status(500).json({ error: err.message });
