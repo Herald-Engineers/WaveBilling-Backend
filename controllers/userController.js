@@ -623,6 +623,7 @@ const fetchBillDetails = async (req, res) => {
         ...consumerDetails,
         billDate,
         dueBy,
+        unitConsumed: bill.currentReading - bill.previousReading,
         billAmount,
         finePercent,
         rebatePercent,
