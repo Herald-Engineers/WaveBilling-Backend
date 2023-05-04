@@ -633,4 +633,16 @@ const fetchBillDetails = async (req, res) => {
     });
 }
 
-module.exports = { login, registerCompany, registerUser, resetPassword, contactWavebilling, submitIssue, fetchMyBills, payBill, fetchMyReceipts, fetchReport, fetchBillDetails }; 
+const fetchTotalPayment = async (req, res) => {
+    const userId = req.user.userId;
+    const myReceipts = await receiptModel.find({
+        consumerId: userId
+    });
+    let totalPayment = 0;
+    myReceipts.map((receipt) => {
+        totalPayment += receipt.totalAmount
+    });
+    res.json({ totalPayment });
+}
+
+module.exports = { login, registerCompany, registerUser, resetPassword, contactWavebilling, submitIssue, fetchMyBills, payBill, fetchMyReceipts, fetchReport, fetchBillDetails, fetchTotalPayment }; 
