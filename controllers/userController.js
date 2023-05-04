@@ -645,4 +645,12 @@ const fetchTotalPayment = async (req, res) => {
     res.json({ totalPayment });
 }
 
-module.exports = { login, registerCompany, registerUser, resetPassword, contactWavebilling, submitIssue, fetchMyBills, payBill, fetchMyReceipts, fetchReport, fetchBillDetails, fetchTotalPayment }; 
+const myAdvancePayment = async (req, res) => {
+    const userId = req.user.userId;
+    const advancePayment = await advancePaymentModel.findOne({
+        consumerId: userId
+    })
+    res.json({ advanceAmount: advancePayment?advancePayment.advanceAmount:0 });
+}
+
+module.exports = { login, registerCompany, registerUser, resetPassword, contactWavebilling, submitIssue, fetchMyBills, payBill, fetchMyReceipts, fetchReport, fetchBillDetails, fetchTotalPayment, myAdvancePayment }; 
