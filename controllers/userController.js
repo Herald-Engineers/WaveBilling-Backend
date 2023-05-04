@@ -568,11 +568,68 @@ const fetchReport = async (req, res) => {
 }
 
 const fetchBillDetails = async (req, res) => {
+    const { userRole, id } = req.user;
+    const userId = req.user.userId;
+    let userDoc;
+    let consumerName, consumerAddress;
+    if(userRole == 'individualConsumer') {
+        userDoc = await usrDetailsModel.findOne({
+            loginId: id
+        });
+        if(userDoc) {
+            const { firstName, middleName, lastName, tole, municipality, wardNo, province  } = userDoc;
+            consumerName = middleName?`${firstName} ${middleName} ${lastName}`:`${firstName} ${lastName}`;
+            consumerAddress = `${tole}, ${municipality}-${wardNo} ${province}`;
+        } else {
+            return;
+        }
+    }
+    else if(userRole == 'companyConsumer') {
+        userDoc = await companiesModel.findOne({
+            loginId: id
+        });
+        if(userDoc) {
+            const { companyName, address  } = userDoc;
+            consumerName = companyName;
+            consumerAddress = address;
+        } else {
+            return;
+        }
+    } else {
+        return res.status(404).json({ message: 'You don\'t have permission for this operation'});
+    }
+
     const { _id } = req.query;
     if(!_id) {
         return res.status(422).json({ message: '_id is required' });
     }
-    res.json(await billModel.findById(_id));
+    const bill = await billModel.findById(_id);
+    if(!bill) {
+        res.status(404).json({ message: 'bill not found' });
+    }
+    const consumerDetails = {
+        consumerName,
+        consumerAddress,
+        userId
+    }
+
+    const { billDate, billAmount } = bill;
+        const dueDate = new Date(billDate);
+        const dueBy = new Date(dueDate.setDate(billDate.getDate() + 10))
+        const { finePercent, rebatePercent, rebateAmount, fineAmount, totalAmount } = calculateRebateAndFine(billDate, dueBy, billAmount);
+
+    res.json({
+        _id: bill._id,
+        ...consumerDetails,
+        billDate,
+        dueBy,
+        billAmount,
+        finePercent,
+        rebatePercent,
+        rebateAmount,
+        fineAmount,
+        totalAmount
+    });
 }
 
 module.exports = { login, registerCompany, registerUser, resetPassword, contactWavebilling, submitIssue, fetchMyBills, payBill, fetchMyReceipts, fetchReport, fetchBillDetails }; 
