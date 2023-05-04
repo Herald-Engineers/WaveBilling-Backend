@@ -568,7 +568,7 @@ const fetchReport = async (req, res) => {
 }
 
 const fetchBillDetails = async (req, res) => {
-    const { _id } = req.params;
+    const { _id } = req.query;
     if(!_id) {
         return res.status(422).json({ message: '_id is required' });
     }
