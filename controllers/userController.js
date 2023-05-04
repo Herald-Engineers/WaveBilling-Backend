@@ -502,7 +502,7 @@ const fetchMyBills = async (req, res) => {
         res.status(404).json({ message: 'no bill found' });
     }
     
-    const resData = await Promise.all(myBills.map(async (bill) => {
+    const resData = await Promise.all(myBills.filter(bill => !bill.paid).map(async (bill) => {
         const { billDate, billAmount } = bill;
         const dueDate = new Date(billDate);
         const dueBy = new Date(dueDate.setDate(billDate.getDate() + 10))
