@@ -409,12 +409,12 @@ const approveUser = async (req, res) => {
     }
 }
 const editUser = async (req, res) => {
-    const { userLoginId, userType, userDocId  } = req.body;
-    const { firstName, middleName, lastName, houseNo, province, municipality, wardNo, tole, tel1, tel2, email  } = req.body;
+    const { userType  } = req.body;
+    const { firstName, middleName, lastName, houseNo, province, municipality, wardNo, tole, tel2, email  } = req.body;
     const { companyName, address, email1, contactNum } = req.body;
 
     if(userType == 'Individual') {
-        if(!firstName || !middleName || !lastName || !houseNo || !province || !municipality || !wardNo || !tole || !tel1 || !tel2 || !email) {
+        if(!firstName || !lastName || !houseNo || !province || !municipality || !wardNo || !tole || !tel2 || !email) {
             return res.status(422).json({ message: 'Please fill all the fields' });
         }
         // Find the user document
