@@ -1,5 +1,5 @@
 const express = require('express');
-const { login, registerCompany, registerUser, resetPassword, contactWavebilling, submitIssue, fetchMyBills, payBill, fetchMyReceipts, fetchReport, fetchBillDetails, fetchTotalPayment, myAdvancePayment } = require('../controllers/userController');
+const { login, registerCompany, registerUser, resetPassword, contactWavebilling, submitIssue, fetchMyBills, payBill, fetchMyReceipts, fetchReport, fetchBillDetails, fetchTotalPayment, myAdvancePayment,fetchProfileInfo } = require('../controllers/userController');
 const userRouter = express.Router();
 const authenticateToken = require('../middlewares/authenticateToken');
 
@@ -19,5 +19,6 @@ userRouter.get('/get-report', authenticateToken, fetchReport);
 userRouter.get('/fetch-bill-details', authenticateToken, fetchBillDetails);
 userRouter.get('/get-total-payment', authenticateToken, fetchTotalPayment);
 userRouter.get('/my-advance-payment', authenticateToken, myAdvancePayment);
+userRouter.get('/fetch-profile-info', authenticateToken, fetchProfileInfo);
 
 module.exports = userRouter;

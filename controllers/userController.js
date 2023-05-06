@@ -653,4 +653,44 @@ const myAdvancePayment = async (req, res) => {
     res.json({ advanceAmount: advancePayment?advancePayment.advanceAmount:0 });
 }
 
-module.exports = { login, registerCompany, registerUser, resetPassword, contactWavebilling, submitIssue, fetchMyBills, payBill, fetchMyReceipts, fetchReport, fetchBillDetails, fetchTotalPayment, myAdvancePayment }; 
+const fetchProfileInfo = async (req, res) => {
+    const { userRole, id } = req.user;
+    try {
+            if(userRole == 'individualConsumer') {
+            const userDoc = await usrDetailsModel.findOne({
+                loginId: id
+            });
+            if(!userDoc) {
+                return res.status(404).json({ message: 'User not found' });
+            }
+            const { firstName, middleName, lastName, tel2, email } = userDoc;
+            res.json({
+                firstName,
+                middleName,
+                lastName,
+                tel2,
+                email
+            });
+        } else if(userRole == 'companyConsumer') {
+            const userDoc = await companiesModel.findOne({
+                loginId: id
+            });
+            if(!userDoc) {
+                return res.status(404).json({ message: 'User not found' });
+            }
+            const { companyName, contactNum, email1 } = userDoc;
+            res.json({
+                companyName,
+                contactNum,
+                email1
+            });
+        } else {
+            return res.status(401).json({ message: 'You are unauthorized to perform this action' })
+        }
+    } catch(err) {
+        return res.status(500).json({ error: 'Server error: ' + err });
+    }
+    
+}
+
+module.exports = { login, registerCompany, registerUser, resetPassword, contactWavebilling, submitIssue, fetchMyBills, payBill, fetchMyReceipts, fetchReport, fetchBillDetails, fetchTotalPayment, myAdvancePayment, fetchProfileInfo }; 
