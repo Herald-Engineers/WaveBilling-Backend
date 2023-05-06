@@ -432,7 +432,10 @@ const deleteReader = async (req, res) => {
     }
 
     // Delete the reader's login details
-    await userModel.findByIdAndDelete(reqReader.loginId);
+    const userLogin = await userModel.findByIdAndDelete(reqReader.loginId);
+
+    // Delete the schedules associated with the reader
+    await scheduleModel.deleteMany({ assignedTo: userLogin.userId });
 
     // Delete the reader details
     await meterReaderModel.findByIdAndDelete(_id);
@@ -519,7 +522,7 @@ const deleteUser = async (req, res) => {
 
         // Delete the issues created by the user
         await issueModel.deleteMany({ userName: userLogin.userId });
-        
+
         // Delete the receipts of the user
         await receiptModel.deleteMany({ consumerId: userLogin.userId });
 
