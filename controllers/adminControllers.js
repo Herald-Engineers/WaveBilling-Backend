@@ -117,7 +117,7 @@ const fetchReaders = async (req, res) => {
         const readers = await meterReaderModel.find();
         res.json(readers);
     } catch(err) {
-        res.status(500).json({ message: 'Server errror: ' + err });
+        res.status(500).json({ message: 'Server error: ' + err });
     }
 }
 const fetchUsername = async (req, res) => {
@@ -408,6 +408,91 @@ const approveUser = async (req, res) => {
         }
     }
 }
+const editUser = async (req, res) => {
+    const { userLoginId, userType, userDocId  } = req.body;
+    const { firstName, middleName, lastName, houseNo, province, municipality, wardNo, tole, tel1, tel2, email  } = req.body;
+    const { companyName, address, email1, contactNum } = req.body;
+
+    if(userType == 'Individual') {
+        if(!firstName || !middleName || !lastName || !houseNo || !province || !municipality || !wardNo || !tole || !tel1 || !tel2 || !email) {
+            return res.status(422).json({ message: 'Please fill all the fields' });
+        }
+        // Find the user document
+        const userDoc = await usrDetailsModel.findOne({
+            loginId: id
+        });
+        if(!userDoc) return res.status(404).json({ message: 'User not found' });
+
+        // Edit the user doc
+        userDoc.firstName = firstName;
+        userDoc.middleName = middleName;
+        userDoc.lastName = lastName;
+        userDoc.houseNo = houseNo;
+        userDoc.province = province;
+        userDoc.municipality = municipality;
+        userDoc.wardNo = wardNo;
+        userDoc.tole = tole;
+        userDoc.tel1 = tel1;
+        userDoc.tel2 = tel2;
+        userDoc.email = email;
+        await userDoc.save();
+
+        // Update the details in issues associated with user
+        await issueModel.updateMany({ userName: userId }, {
+            $set: {
+                name: middleName?`${firstName} ${middleName} ${lastName}`: `${firstName} ${lastName}`,
+                phoneNum: tel2
+            }
+        });
+
+        // Update the details in receipts associated with the user
+        await receiptModel.updateMany({ consumerId: userId }, {
+            $set: {
+                consumerName: middleName?`${firstName} ${middleName} ${lastName}`: `${firstName} ${lastName}`,
+                consumerAddress: `${tole}, ${municipality}-${wardNo} ${province}`
+            }
+        })
+
+        res.json({ message: 'Successful' });
+    } else if(userType == 'Company') {
+        if(!companyName ||!address ||!email1 ||!contactNum) {
+            return res.status(422).json({ message: 'Please fill all the fields' });
+        }
+
+        // Find the user document
+        const userDoc = await companiesModel.findOne({
+            loginId: id
+        });
+        if(!userDoc) return res.status(404).json({ message: 'User not found' });
+
+        // Edit the user doc
+        userDoc.companyName = companyName;
+        userDoc.address = address;
+        userDoc.contactNum = contactNum;
+        userDoc.email1 = email1;
+        await userDoc.save();
+
+        // Update the details in issues associated with user
+        await issueModel.updateMany({ userName: userId }, {
+            $set: {
+                name: companyName,
+                phoneNum: contactNum
+            }
+        });
+
+        // Update the details in receipts associated with the user
+        await receiptModel.updateMany({ consumerId: userId }, {
+            $set: {
+                consumerName: companyName,
+                consumerAddress: address
+            }
+        })
+
+        res.json({ message: 'Successful' });
+    } else {
+        res.status(422).json({ message: 'No such user type' });
+    }
+}
 
 
 
@@ -590,4 +675,4 @@ const rejectRequest = async (req, res) => {
 }
 
 
-module.exports = { addReader, fetchReaders, deleteReader, editReader, fetchUsername, addSchedule, fetchSchedules, fetchConsumers, approveUser, deleteUser, rejectRequest, fetchIssues };
+module.exports = { addReader, fetchReaders, deleteReader, editReader, fetchUsername, addSchedule, fetchSchedules, fetchConsumers, approveUser, deleteUser, rejectRequest, fetchIssues, editUser };
