@@ -719,12 +719,29 @@ const editProfileInfo = async (req, res) => {
         });
         if(!userDoc) return res.status(404).json({ message: 'User not found' });
 
+        // Edit the user doc
         userDoc.firstName = firstName;
         userDoc.middleName = middleName;
         userDoc.lastName = lastName;
         userDoc.tel2 = tel2;
         userDoc.email = email;
         await userDoc.save();
+
+        // Update the details in issues associated with user
+        await issueModel.updateMany({ userName: userId }, {
+            $set: {
+                name: middleName?`${firstName} ${middleName} ${lastName}`: `${firstName} ${lastName}`,
+                phoneNum: tel2
+            }
+        });
+
+        // Update the details in receipts associated with the user
+        await receiptModel.updateMany({ consumerId: userId }, {
+            $set: {
+                consumerName: middleName?`${firstName} ${middleName} ${lastName}`: `${firstName} ${lastName}`
+            }
+        })
+
         res.json({ message: 'Successful' });
     } else if(userRole == 'companyConsumer') {
         const { companyName, contactNum, email1 } = req.body;
@@ -737,10 +754,27 @@ const editProfileInfo = async (req, res) => {
         });
         if(!userDoc) return res.status(404).json({ message: 'User not found' });
 
+        // Edit the user doc
         userDoc.companyName = companyName;
         userDoc.contactNum = contactNum;
         userDoc.email1 = email1;
         await userDoc.save();
+
+        // Update the details in issues associated with the user
+        await issueModel.updateMany({ userName: userId }, {
+            $set: {
+                name: companyName,
+                phoneNum: contactNum
+            }
+        });
+
+        // Update the details in receipts associated with the user
+        await receiptModel.updateMany({ consumerId: userId }, {
+            $set: {
+                consumerName: companyName
+            }
+        })
+
         res.json({ message: 'Successful' });
     } else {
         return res.status(401).json({ message: 'You are unauthorized to perform this action' });
