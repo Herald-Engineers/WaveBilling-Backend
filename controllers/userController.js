@@ -693,4 +693,58 @@ const fetchProfileInfo = async (req, res) => {
     
 }
 
-module.exports = { login, registerCompany, registerUser, resetPassword, contactWavebilling, submitIssue, fetchMyBills, payBill, fetchMyReceipts, fetchReport, fetchBillDetails, fetchTotalPayment, myAdvancePayment, fetchProfileInfo }; 
+
+
+// UPDATE ==========================================================================================================================
+const editProfileInfo = async (req, res) => {
+    const { userRole, id, userId } = req.user;
+    const { currPassword, newPassword } = req.body;
+    if(currPassword) {
+        if(!newPassword) return res.status(422).json({ message: 'New password is required.' });
+        const userLogin = await userModel.findOne({ userId });
+        const isMatch = await bcrypt.compare(currPassword, userLogin.password);
+        if(!isMatch) return res.status(400).json({ message: 'Current password is incorrect'});
+        userLogin.password = await bcrypt.hash(newPassword, 10);
+        await userLogin.save();
+    }
+
+    if(userRole == 'individualConsumer') {
+        const { firstName, middleName, lastName, tel2, email } = req.body;
+        if(!firstName ||!middleName ||!lastName ||!tel2 ||!email) {
+            return res.status(422).json({ message: 'Please fill all the fields' });
+        }
+        // Find the user document
+        const userDoc = await usrDetailsModel.findOne({
+            loginId: id
+        });
+        if(!userDoc) return res.status(404).json({ message: 'User not found' });
+
+        userDoc.firstName = firstName;
+        userDoc.middleName = middleName;
+        userDoc.lastName = lastName;
+        userDoc.tel2 = tel2;
+        userDoc.email = email;
+        await userDoc.save();
+        res.json({ message: 'Successful' });
+    } else if(userRole == 'companyConsumer') {
+        const { companyName, contactNum, email1 } = req.body;
+        if(!companyName||!contactNum ||!email1) {
+            return res.status(422).json({ message: 'Please fill all the fields' });
+        }
+        // Find the user document
+        const userDoc = await companiesModel.findOne({
+            loginId: id
+        });
+        if(!userDoc) return res.status(404).json({ message: 'User not found' });
+
+        userDoc.companyName = companyName;
+        userDoc.contactNum = contactNum;
+        userDoc.email1 = email1;
+        await userDoc.save();
+        res.json({ message: 'Successful' });
+    } else {
+        return res.status(401).json({ message: 'You are unauthorized to perform this action' });
+    }
+}
+
+module.exports = { login, registerCompany, registerUser, resetPassword, contactWavebilling, submitIssue, fetchMyBills, payBill, fetchMyReceipts, fetchReport, fetchBillDetails, fetchTotalPayment, myAdvancePayment, fetchProfileInfo, editProfileInfo }; 
