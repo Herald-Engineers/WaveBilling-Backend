@@ -9,6 +9,9 @@ const scheduleModel = require('../models/scheduleModel');
 const companiesModel = require('../models/companiesModel');
 const meterModel = require('../models/meterModel');
 const issueModel = require('../models/issueModel');
+const receiptModel = require('../models/receiptModel');
+const advancePaymentModel = require('../models/advancePaymentModel');
+
 const bcrypt = require('bcrypt');
 // Cloudinary configuration 
 const cloudinary = require('cloudinary').v2;
@@ -466,13 +469,25 @@ const deleteUser = async (req, res) => {
         });
 
         // Delete the bill of that user
-        await billModel.deleteMany({ consumerId: _id });        
+        await billModel.deleteMany({ consumerId: _id });
         
         // Get the document of the user in users
         const userLogin = await userModel.findById(userDoc.loginId);
+
+        // Delete the receipts of the user
+        await receiptModel.deleteMany({ consumerId: userLogin.userId });
+
+        // Delete the advance payment records of that user
+        await advancePaymentModel.deleteMany({ consumerId: userLogin.userId });
+
+        // Delete the issues created by the user
+        await issueModel.deleteMany({ userName: userLogin.userId });
         
         // Delete the meter associated with that user
         await meterModel.deleteMany({ username: userLogin.userId });
+
+        // Delete the receipts of the user
+        await receiptModel.deleteMany({ consumerId: userLogin.userId });
 
         // Delete the user from users list
         await userModel.deleteOne({ _id: userLogin._id });
@@ -495,6 +510,18 @@ const deleteUser = async (req, res) => {
         
         // Get the document of the user in users
         const userLogin = await userModel.findById(userDoc.loginId);
+
+        // Delete the receipts of the user
+        await receiptModel.deleteMany({ consumerId: userLogin.userId });
+
+        // Delete the advance payment records of that user
+        await advancePaymentModel.deleteMany({ consumerId: userLogin.userId });
+
+        // Delete the issues created by the user
+        await issueModel.deleteMany({ userName: userLogin.userId });
+        
+        // Delete the receipts of the user
+        await receiptModel.deleteMany({ consumerId: userLogin.userId });
 
         // Delete the meter associated with that user
         await meterModel.deleteMany({ username: userLogin.userId });
