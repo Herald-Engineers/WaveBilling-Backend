@@ -458,9 +458,7 @@ const editUser = async (req, res) => {
             return res.status(422).json({ message: 'Please fill all the fields' });
         }
         // Find the user document
-        const userDoc = await usrDetailsModel.findOne({
-            loginId: id
-        });
+        const userDoc = await usrDetailsModel.findById(id);
         if(!userDoc) return res.status(404).json({ message: 'User not found' });
 
         // Edit the user doc
@@ -500,9 +498,7 @@ const editUser = async (req, res) => {
         }
 
         // Find the user document
-        const userDoc = await companiesModel.findOne({
-            loginId: id
-        });
+        const userDoc = await companiesModel.findById(id);
         if(!userDoc) return res.status(404).json({ message: 'User not found' });
 
         // Edit the user doc
