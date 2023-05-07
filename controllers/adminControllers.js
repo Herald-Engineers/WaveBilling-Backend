@@ -231,7 +231,7 @@ const fetchIssues = async (req, res) => {
 }
 
 const fetchConsumerDetails = async (req, res) => {
-    const { userDocId, consumerType } = req.body;
+    const { userDocId, consumerType } = req.query;
     if(!userDocId || !consumerType) return res.status(422).json({ message: 'userDocId and consumerType is required' });
     let userDoc;
     if(consumerType == 'Individual') {
