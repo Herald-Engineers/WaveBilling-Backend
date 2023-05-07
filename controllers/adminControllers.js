@@ -449,6 +449,7 @@ const approveUser = async (req, res) => {
 }
 const editUser = async (req, res) => {
     const { userType, id  } = req.body;
+    if(!userType || !id) return res.status(422).json({ message: 'userType and id are required.'});
     const { firstName, middleName, lastName, houseNo, province, municipality, wardNo, tole, tel2, email  } = req.body;
     const { companyName, address, email1, contactNum } = req.body;
 
