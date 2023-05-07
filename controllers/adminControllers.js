@@ -475,6 +475,11 @@ const editUser = async (req, res) => {
         userDoc.email = email;
         await userDoc.save();
 
+        const userLoginDoc = await userModel.findOne({
+            _id: userDoc.loginId
+        })
+        const { userId } = userLoginDoc;
+
         // Update the details in issues associated with user
         await issueModel.updateMany({ userName: userId }, {
             $set: {
@@ -507,6 +512,11 @@ const editUser = async (req, res) => {
         userDoc.contactNum = contactNum;
         userDoc.email1 = email1;
         await userDoc.save();
+
+        const userLoginDoc = await userModel.findOne({
+            _id: userDoc.loginId
+        })
+        const { userId } = userLoginDoc;
 
         // Update the details in issues associated with user
         await issueModel.updateMany({ userName: userId }, {
