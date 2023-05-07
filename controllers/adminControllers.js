@@ -235,10 +235,37 @@ const fetchConsumerDetails = async (req, res) => {
     if(!userDocId || !consumerType) return res.status(422).json({ message: 'userDocId and consumerType is required' });
     let userDoc;
     if(consumerType == 'Individual') {
-        
+        userDoc = await usrDetailsModel.findOne({
+            _id:  userDocId
+        });
+        const { firstName, lastName, middleName, houseNo, province, municipality, wardNo, tole, tel1, tel2, email } = userDoc;
+        res.json({
+            userType: consumerType,
+            firstName,
+            lastName,
+            middleName,
+            houseNo,
+            province,
+            municipality,
+            wardNo,
+            tole,
+            tel1,
+            tel2,
+            email
+        });
     } 
     else if(consumerType == 'Company') {
-        
+        userDoc = await companiesModel.findOne({
+            _id: userDocId
+        });
+        const { companyName, address, email, contactNum } = userDoc;
+        res.json({
+            userType: consumerType,
+            companyName,
+            address,
+            email,
+            contactNum
+        })
     } else {
         res.status(401).json({ message: 'No such user type is allowed' });
     }
