@@ -230,7 +230,19 @@ const fetchIssues = async (req, res) => {
     res.json(await issueModel.find());
 }
 
-
+const fetchConsumerDetails = async (req, res) => {
+    const { userDocId, consumerType } = req.body;
+    if(!userDocId || !consumerType) return res.status(422).json({ message: 'userDocId and consumerType is required' });
+    let userDoc;
+    if(consumerType == 'Individual') {
+        
+    } 
+    else if(consumerType == 'Company') {
+        
+    } else {
+        res.status(401).json({ message: 'No such user type is allowed' });
+    }
+}
 
 
 // UPDATE =============================================================================================================
@@ -409,7 +421,7 @@ const approveUser = async (req, res) => {
     }
 }
 const editUser = async (req, res) => {
-    const { userType  } = req.body;
+    const { userType, id  } = req.body;
     const { firstName, middleName, lastName, houseNo, province, municipality, wardNo, tole, tel2, email  } = req.body;
     const { companyName, address, email1, contactNum } = req.body;
 
@@ -675,4 +687,4 @@ const rejectRequest = async (req, res) => {
 }
 
 
-module.exports = { addReader, fetchReaders, deleteReader, editReader, fetchUsername, addSchedule, fetchSchedules, fetchConsumers, approveUser, deleteUser, rejectRequest, fetchIssues, editUser };
+module.exports = { addReader, fetchReaders, deleteReader, editReader, fetchUsername, addSchedule, fetchSchedules, fetchConsumers, approveUser, deleteUser, rejectRequest, fetchIssues, editUser, fetchConsumerDetails };

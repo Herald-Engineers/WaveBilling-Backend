@@ -1,7 +1,7 @@
 const express = require('express');
 const adminRouter = express.Router();
 
-const { addReader, fetchReaders, deleteReader, editReader, fetchUsername, addSchedule, fetchSchedules, fetchConsumers, approveUser, deleteUser, rejectRequest, fetchIssues, editUser } = require('../controllers/adminControllers');
+const { addReader, fetchReaders, deleteReader, editReader, fetchUsername, addSchedule, fetchSchedules, fetchConsumers, approveUser, deleteUser, rejectRequest, fetchIssues, editUser, fetchConsumerDetails } = require('../controllers/adminControllers');
 
 const authenticateToken = require('../middlewares/authenticateToken');
 const isAdmin = require('../middlewares/isAdmin');
@@ -17,6 +17,7 @@ adminRouter.get('/fetch-readers', authenticateToken, isAdmin, fetchReaders);
 adminRouter.get('/fetch-userid', authenticateToken, isAdmin, fetchUsername);
 adminRouter.get('/fetch-schedules', authenticateToken, isAdmin, fetchSchedules);
 adminRouter.get('/fetch-consumers', authenticateToken, isAdmin, fetchConsumers);
+adminRouter.get('fetch-consumer-details', authenticateToken, isAdmin, fetchConsumerDetails);
 adminRouter.get('/fetch-issues', authenticateToken, isAdmin, fetchIssues);
 
 // PATCH REQUESTS
