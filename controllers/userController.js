@@ -742,7 +742,7 @@ const fetchMyReceipts = async (req, res) => {
 }
 
 const fetchReceiptDetails = async (req, res) => {
-    const { receiptId } = req.body;
+    const { receiptId } = req.query;
     try {
         res.json(await receiptModel.findById(receiptId));    
     } catch(err) {
