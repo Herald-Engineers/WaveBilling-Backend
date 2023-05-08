@@ -12,6 +12,8 @@ const receiptModel = require('../models/receiptModel');
 
 const bcrypt = require('bcrypt');
 const nodemailer = require('nodemailer');
+const adminDetailsModel = require('../models/adminDetailsModel');
+const otpModel = require('../models/otpModel');
 
 // Cloudinary configuration 
 const cloudinary = require('cloudinary').v2;
@@ -326,8 +328,115 @@ const login = async (req, res) => {
     }
 }
 
-const resetPassword = async (req, res) => {
-    const userName = req.body.userName;
+const sendOtp = async (req, res) => {
+    let { userName, email } = req.body;
+
+    if(!userName && !email) {
+        return res.status(422).json({ message: 'userName or email is required' });
+    }
+
+    if(userName) {
+        // Find the login doc of the user in users collection
+        const loginDoc = await userModel.findOne({ userId: userName });
+        if(!loginDoc) return res.status(404).json({ message: 'No user with such username' });
+        
+        // Find the email of the user
+        if(loginDoc.userRole == "individualConsumer"){
+            const userDoc = await usrDetailsModel.findOne({
+                loginId: loginDoc._id
+            });
+            if(!userDoc) return res.status(404).json({ message: 'No user doc found' });
+
+            email = userDoc.email;
+
+        } else if(loginDoc.userRole == "companyConsumer"){
+            const userDoc = await companiesModel.findOne({
+                loginId: loginDoc._id
+            });
+            if(!userDoc) return res.status(404).json({ message: 'No user doc found' });
+
+            email = userDoc.email1;
+
+        } else if(loginDoc.userRole == "reader") {
+            const userDoc = await meterReaderModel.findOne({
+                loginId: loginDoc._id
+            });
+            if(!userDoc) return res.status(404).json({ message: 'No user doc found' });
+
+            email = userDoc.email;
+
+        } else {
+            const userDoc = await adminDetailsModel.findOne({
+                loginId: loginDoc._id
+            });
+            if(!userDoc) return res.status(404).json({ message: 'No user doc found' });
+
+            email = userDoc.email;
+
+        }
+        
+        if(!email) return res.status(404).json({ message: 'No email found' });
+
+    } else {        
+        let userDoc;
+        // Find the email of the user
+        if(userRole == "individualConsumer"){
+            userDoc = await usrDetailsModel.findOne({
+                email
+            });
+            if(!userDoc) return res.status(404).json({ message: 'No user doc found' });
+
+        } else if(userRole == "companyConsumer"){
+            userDoc = await companiesModel.findOne({
+                email1: email
+            });
+            if(!userDoc) return res.status(404).json({ message: 'No user doc found' });
+
+        } else if(userRole == "reader") {
+            userDoc = await meterReaderModel.findOne({
+                email
+            });
+            if(!userDoc) return res.status(404).json({ message: 'No user doc found' });
+
+        } else {
+            userDoc = await adminDetailsModel.findOne({
+                email
+            });
+            if(!userDoc) return res.status(404).json({ message: 'No user doc found' });
+
+        }
+        const loginId = userDoc.loginId;
+
+        // Find the login document
+        const loginDoc = await userModel.findById(loginId);
+        if(!loginDoc) return res.status(404).json({ message: 'No login details found' });
+
+        // Change the password of that login document
+        loginDoc.password = await bcrypt.hash(newPassword, 10);
+        loginDoc.save();
+
+        res.json({ message: 'Successfully changed the password.' });
+    }
+
+    // Check if already sent
+    const alreadySent = await otpModel.findOne({
+        email,
+    });
+
+    if(alreadySent) {
+        const currentTimestamp = new Date().getTime();
+        if(currentTimestamp <= otpExpiration) return res.status(400).json({ message: 'OTP has been sent already. Please wait 1 minute before requesting new OTP' })
+    }
+
+    // Create the otp
+    const otp = {
+        email,
+        otpPin: Math.floor(10000 + Math.random() * 90000),
+        otpExpiration: new Date().getTime() + 1 * 60 * 1000
+    }
+
+    // Add otp to database
+    await otpModel.create(otp);
 
     const nodemailer = require('nodemailer');
     const transporter = nodemailer.createTransport({
@@ -338,22 +447,119 @@ const resetPassword = async (req, res) => {
     }
     });
 
-    const otp = Math.floor(10000 + Math.random() * 90000);
+    
 
     const mailData = {
-    to: 'sabinhero88@gmail.com',
-    subject: 'Sabin Mail Sender Alert',
-    text: 'Hi, I am sending email. Your app is perfectly working'
+        to: email,
+        subject: 'WaveBilling Password Reset OTP',
+        text: 'Please use this OTP(One Time Password) to reset your password.\n Your OTP is: ' + otp.otpPin
     }
     transporter.sendMail(mailData, (err, info) => {
-    if(err) {
-        console.log('Error occured: ' + err);
-        return;
-    }
-    console.log('Successful ' + info.response);
-    return;
+        if(err) {
+            console.log('Error occurred: ' + err);
+            res.status(500).json({ message: 'OTP sending failed: ' + err })
+            return;
+        }
+        console.log('Successful ' + info.response);
+        return res.json({ message: 'OTP has been sent successfully.' });
     })
 
+}
+
+const verifyOtp = async (req, res) => {
+    const { userName, otp, newPassword, userRole } = req.body;
+    let { email } = req.body;
+    if(!otp || !newPassword) return res.status(422).json({ message: 'Please fill all the fields' });
+
+    if(userName) {
+        // Find the login doc of the user in users collection
+        const loginDoc = await userModel.findOne({ userId: userName });
+        if(!loginDoc) return res.status(404).json({ message: 'No user with such username' });
+        
+        // Find the email of the user
+        if(loginDoc.userRole == "individualConsumer"){
+            const userDoc = await usrDetailsModel.findOne({
+                loginId: loginDoc._id
+            });
+            if(!userDoc) return res.status(404).json({ message: 'No user doc found' });
+
+            email = userDoc.email;
+
+        } else if(loginDoc.userRole == "companyConsumer"){
+            const userDoc = await companiesModel.findOne({
+                loginId: loginDoc._id
+            });
+            if(!userDoc) return res.status(404).json({ message: 'No user doc found' });
+
+            email = userDoc.email1;
+
+        } else if(loginDoc.userRole == "reader") {
+            const userDoc = await meterReaderModel.findOne({
+                loginId: loginDoc._id
+            });
+            if(!userDoc) return res.status(404).json({ message: 'No user doc found' });
+
+            email = userDoc.email;
+
+        } else {
+            const userDoc = await adminDetailsModel.findOne({
+                loginId: loginDoc._id
+            });
+            if(!userDoc) return res.status(404).json({ message: 'No user doc found' });
+
+            email = userDoc.email;
+
+        }
+        
+        if(!email) return res.status(404).json({ message: 'No email found' });
+
+    } else {
+        // Find the email of the user
+        if(loginDoc.userRole == "individualConsumer"){
+            const userDoc = await usrDetailsModel.findOne({
+                loginId: loginDoc._id
+            });
+            if(!userDoc) return res.status(404).json({ message: 'No user doc found' });
+
+            email = userDoc.email;
+
+        } else if(loginDoc.userRole == "companyConsumer"){
+            const userDoc = await companiesModel.findOne({
+                loginId: loginDoc._id
+            });
+            if(!userDoc) return res.status(404).json({ message: 'No user doc found' });
+
+            email = userDoc.email1;
+
+        } else if(loginDoc.userRole == "reader") {
+            const userDoc = await meterReaderModel.findOne({
+                loginId: loginDoc._id
+            });
+            if(!userDoc) return res.status(404).json({ message: 'No user doc found' });
+
+            email = userDoc.email;
+
+        } else {
+            const userDoc = await adminDetailsModel.findOne({
+                loginId: loginDoc._id
+            });
+            if(!userDoc) return res.status(404).json({ message: 'No user doc found' });
+
+            email = userDoc.email;
+
+        }
+    }
+    const findOtp = await otpModel.findOne({
+        email,
+        otpPin: otp
+    });
+    if(!findOtp) return res.status(422).json({ message: 'Invalid OTP' });
+    const currentTimestamp = new Date().getTime();
+    if(currentTimestamp > findOtp.otpExpiration.getTime()) return res.status(422).json({ message: 'OTP expired' });
+
+    // Find the login doc
+
+    
 }
 
 const contactWavebilling = async (req, res) => {
@@ -382,7 +588,7 @@ const contactWavebilling = async (req, res) => {
     }
     transporter.sendMail(mailData, (err, info) => {
     if(err) {
-        console.log('Error occured: ' + err);
+        console.log('Error occurred: ' + err);
         return res.status(500).json({message: 'Server error'});
     }
     console.log('Successful ' + info.response);
@@ -529,6 +735,18 @@ const fetchMyReceipts = async (req, res) => {
     try {
         res.json(await receiptModel.find({
             consumerId: userId
+        }));    
+    } catch(err) {
+        res.status(500).json({message: "Server error"});
+    }
+}
+
+const fetchReceiptDetails = async (req, res) => {
+    const userId = req.user.userId;
+    const { receiptId } = req.body;
+    try {
+        res.json(await receiptModel.find({
+            _id: receiptId
         }));    
     } catch(err) {
         res.status(500).json({message: "Server error"});
@@ -781,4 +999,4 @@ const editProfileInfo = async (req, res) => {
     }
 }
 
-module.exports = { login, registerCompany, registerUser, resetPassword, contactWavebilling, submitIssue, fetchMyBills, payBill, fetchMyReceipts, fetchReport, fetchBillDetails, fetchTotalPayment, myAdvancePayment, fetchProfileInfo, editProfileInfo }; 
+module.exports = { login, registerCompany, registerUser, sendOtp, contactWavebilling, submitIssue, fetchMyBills, payBill, fetchMyReceipts, fetchReport, fetchBillDetails, fetchTotalPayment, myAdvancePayment, fetchProfileInfo, editProfileInfo, verifyOtp, fetchReceiptDetails }; 
