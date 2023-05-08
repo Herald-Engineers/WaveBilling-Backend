@@ -742,7 +742,6 @@ const fetchMyReceipts = async (req, res) => {
 }
 
 const fetchReceiptDetails = async (req, res) => {
-    const userId = req.user.userId;
     const { receiptId } = req.body;
     try {
         res.json(await receiptModel.find({
