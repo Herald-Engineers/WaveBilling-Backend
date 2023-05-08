@@ -335,6 +335,7 @@ const sendOtp = async (req, res) => {
         return res.status(422).json({ message: 'userName or email is required' });
     }
 
+    // If api is called by passing userName
     if(userName) {
         // Find the login doc of the user in users collection
         const loginDoc = await userModel.findOne({ userId: userName });
@@ -379,7 +380,7 @@ const sendOtp = async (req, res) => {
 
     } else {        
         let userDoc;
-        // Find the email of the user
+        // Find the user doc of the user
         if(userRole == "individualConsumer"){
             userDoc = await usrDetailsModel.findOne({
                 email
@@ -405,26 +406,20 @@ const sendOtp = async (req, res) => {
             if(!userDoc) return res.status(404).json({ message: 'No user doc found' });
 
         }
-        const loginId = userDoc.loginId;
-
-        // Find the login document
-        const loginDoc = await userModel.findById(loginId);
-        if(!loginDoc) return res.status(404).json({ message: 'No login details found' });
-
-        // Change the password of that login document
-        loginDoc.password = await bcrypt.hash(newPassword, 10);
-        loginDoc.save();
-
-        res.json({ message: 'Successfully changed the password.' });
+        
     }
 
-    // Check if already sent
+    // Check if otp is already sent
     const alreadySent = await otpModel.findOne({
         email,
     });
 
     if(alreadySent) {
         const currentTimestamp = new Date().getTime();
+        const otpExpiration = new Date(alreadySent.otpExpiration).getTime();
+        console.log(currentTimestamp);
+        console.log(otpExpiration);
+        console.log(currentTimestamp <= otpExpiration);
         if(currentTimestamp <= otpExpiration) return res.status(400).json({ message: 'OTP has been sent already. Please wait 1 minute before requesting new OTP' })
     }
 
@@ -432,7 +427,7 @@ const sendOtp = async (req, res) => {
     const otp = {
         email,
         otpPin: Math.floor(10000 + Math.random() * 90000),
-        otpExpiration: new Date().getTime() + 1 * 60 * 1000
+        otpExpiration: (new Date().getTime()) + (1 * 60 * 1000)
     }
 
     // Add otp to database
@@ -467,18 +462,22 @@ const sendOtp = async (req, res) => {
 }
 
 const verifyOtp = async (req, res) => {
-    const { userName, otp, newPassword, userRole } = req.body;
-    let { email } = req.body;
+    const { otp, newPassword, userRole } = req.body;
+    let { userName, email } = req.body;
+    if(!userName && !email) return res.status(422).json({ message: 'Either userName or email is required'});
     if(!otp || !newPassword) return res.status(422).json({ message: 'Please fill all the fields' });
+    let loginDoc;
+    let userDoc;
 
+    // if verify-otp is done by passing userName 
     if(userName) {
         // Find the login doc of the user in users collection
-        const loginDoc = await userModel.findOne({ userId: userName });
+        loginDoc = await userModel.findOne({ userId: userName });
         if(!loginDoc) return res.status(404).json({ message: 'No user with such username' });
         
         // Find the email of the user
         if(loginDoc.userRole == "individualConsumer"){
-            const userDoc = await usrDetailsModel.findOne({
+            userDoc = await usrDetailsModel.findOne({
                 loginId: loginDoc._id
             });
             if(!userDoc) return res.status(404).json({ message: 'No user doc found' });
@@ -486,7 +485,7 @@ const verifyOtp = async (req, res) => {
             email = userDoc.email;
 
         } else if(loginDoc.userRole == "companyConsumer"){
-            const userDoc = await companiesModel.findOne({
+            userDoc = await companiesModel.findOne({
                 loginId: loginDoc._id
             });
             if(!userDoc) return res.status(404).json({ message: 'No user doc found' });
@@ -494,7 +493,7 @@ const verifyOtp = async (req, res) => {
             email = userDoc.email1;
 
         } else if(loginDoc.userRole == "reader") {
-            const userDoc = await meterReaderModel.findOne({
+            userDoc = await meterReaderModel.findOne({
                 loginId: loginDoc._id
             });
             if(!userDoc) return res.status(404).json({ message: 'No user doc found' });
@@ -502,7 +501,7 @@ const verifyOtp = async (req, res) => {
             email = userDoc.email;
 
         } else {
-            const userDoc = await adminDetailsModel.findOne({
+            userDoc = await adminDetailsModel.findOne({
                 loginId: loginDoc._id
             });
             if(!userDoc) return res.status(404).json({ message: 'No user doc found' });
@@ -510,56 +509,61 @@ const verifyOtp = async (req, res) => {
             email = userDoc.email;
 
         }
-        
         if(!email) return res.status(404).json({ message: 'No email found' });
 
     } else {
-        // Find the email of the user
-        if(loginDoc.userRole == "individualConsumer"){
-            const userDoc = await usrDetailsModel.findOne({
-                loginId: loginDoc._id
+        // Find the login id of the user
+        if(userRole == "individualConsumer"){
+            userDoc = await usrDetailsModel.findOne({
+                email
             });
             if(!userDoc) return res.status(404).json({ message: 'No user doc found' });
 
-            email = userDoc.email;
-
-        } else if(loginDoc.userRole == "companyConsumer"){
-            const userDoc = await companiesModel.findOne({
-                loginId: loginDoc._id
+        } else if(userRole == "companyConsumer"){
+            userDoc = await companiesModel.findOne({
+                email1: email
             });
             if(!userDoc) return res.status(404).json({ message: 'No user doc found' });
 
-            email = userDoc.email1;
-
-        } else if(loginDoc.userRole == "reader") {
-            const userDoc = await meterReaderModel.findOne({
-                loginId: loginDoc._id
+        } else if(userRole == "reader") {
+            userDoc = await meterReaderModel.findOne({
+                email
             });
             if(!userDoc) return res.status(404).json({ message: 'No user doc found' });
-
-            email = userDoc.email;
 
         } else {
-            const userDoc = await adminDetailsModel.findOne({
-                loginId: loginDoc._id
+            userDoc = await adminDetailsModel.findOne({
+                email
             });
             if(!userDoc) return res.status(404).json({ message: 'No user doc found' });
-
-            email = userDoc.email;
 
         }
     }
+
+    // Find the otp in database
     const findOtp = await otpModel.findOne({
         email,
         otpPin: otp
     });
+    // If no such otp is found in database
     if(!findOtp) return res.status(422).json({ message: 'Invalid OTP' });
+    
     const currentTimestamp = new Date().getTime();
+    // If otp is expired
     if(currentTimestamp > findOtp.otpExpiration.getTime()) return res.status(422).json({ message: 'OTP expired' });
 
     // Find the login doc
+    const loginId = userDoc.loginId;
 
-    
+    // Find the login document
+    loginDoc = await userModel.findById(loginId);
+    if(!loginDoc) return res.status(404).json({ message: 'No login details found' });
+
+    // Change the password of that login document
+    loginDoc.password = await bcrypt.hash(newPassword, 10);
+    loginDoc.save();
+
+    res.json({ message: 'Successfully changed the password.' });
 }
 
 const contactWavebilling = async (req, res) => {
@@ -596,6 +600,7 @@ const contactWavebilling = async (req, res) => {
     })
 
 }
+
 const submitIssue = async (req, res) => {
     if(!req.body) {
         return res.status(422).json({message: 'req.body is null'});
