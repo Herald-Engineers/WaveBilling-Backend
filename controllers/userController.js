@@ -744,9 +744,7 @@ const fetchMyReceipts = async (req, res) => {
 const fetchReceiptDetails = async (req, res) => {
     const { receiptId } = req.body;
     try {
-        res.json(await receiptModel.find({
-            _id: receiptId
-        }));    
+        res.json(await receiptModel.findById(receiptId));    
     } catch(err) {
         res.status(500).json({message: "Server error"});
     }
