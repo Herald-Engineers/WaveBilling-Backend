@@ -199,6 +199,7 @@ const payBill = async (req, res) => {
         return res.status(500).json({ error: err.message });
     }
 }
+
 const registerCompany = async (req, res) => {
     if(!req.body) {
         return res.status(422).json({message: 'req.body is null'});

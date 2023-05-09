@@ -5,6 +5,8 @@ const companiesModel = require('../models/companiesModel');
 const scheduleModel = require('../models/scheduleModel');
 const meterReaderModel = require('../models/meterReaderModel');
 const billModel = require('../models/billModel');
+const userModel = require('../models/userModel');
+const notificationModel = require('../models/notificationModel');
 
 
 
@@ -132,6 +134,34 @@ const addBill = async (req, res) => {
         unitPrice,
         billAmount
     });
+
+    // find the userId of the consumer
+
+    // Find the user doc
+    const findUserDoc = async () => {
+        let userDoc;
+
+        userDoc = await usrDetailsModel.findById(consumerId);
+        if(userDoc) return userDoc;
+        userDoc = await companiesModel.findById(consumerId);
+        if(userDoc) return userDoc;
+        return false;
+    };
+    const userDoc = await findUserDoc();
+    if(!userDoc) return res.status(422).json({ message: 'userDoc not found' });
+
+    // Find the login doc
+    const loginDoc = await userModel.findById(userDoc.loginId);
+    if(!loginDoc) return res.status(422).json({ message: 'Login details not found for the consumer' });
+
+    const userId = loginDoc.userId;
+
+    // Add notification to that userId
+    await notificationModel.create({
+        userId,
+        date: new Date(),
+        body: 'New bill issued for ' + billDate
+    })
 
     res.json({ message: 'bill added successfully' });
 }
