@@ -449,16 +449,15 @@ const sendOtp = async (req, res) => {
         subject: 'WaveBilling Password Reset OTP',
         text: 'Please use this OTP(One Time Password) to reset your password.\n Your OTP is: ' + otp.otpPin
     }
-    // transporter.sendMail(mailData, (err, info) => {
-    //     if(err) {
-    //         console.log('Error occurred: ' + err);
-    //         res.status(500).json({ message: 'OTP sending failed: ' + err })
-    //         return;
-    //     }
-    //     console.log('Successful ' + info.response);
-    //     return res.json({ message: 'OTP has been sent successfully.' });
-    // })
-    res.send('done');
+    transporter.sendMail(mailData, (err, info) => {
+        if(err) {
+            console.log('Error occurred: ' + err);
+            res.status(500).json({ message: 'OTP sending failed: ' + err })
+            return;
+        }
+        console.log('Successful ' + info.response);
+        return res.json({ message: 'OTP has been sent successfully.' });
+    })
 
 }
 
