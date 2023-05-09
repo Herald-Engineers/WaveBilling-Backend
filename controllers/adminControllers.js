@@ -72,6 +72,7 @@ const addReader = async (req, res) => {
     });
     res.status(201).json({message: 'Meter Reader Successfully added'});
 }
+
 const addSchedule = async (req, res) => {
     if(!req.body) {
         return res.status(422).json({message: 'req.body is null'});
@@ -120,6 +121,7 @@ const fetchReaders = async (req, res) => {
         res.status(500).json({ message: 'Server error: ' + err });
     }
 }
+
 const fetchUsername = async (req, res) => {
     if(!req.body) {
         return res.status(422).json({message: 'req.body is null'});
@@ -133,6 +135,7 @@ const fetchUsername = async (req, res) => {
         res.status(500).json({message: 'Login id error'});
     }
 }
+
 const fetchSchedules = async (req, res) => {
     const schedules = await scheduleModel.find();
     res.json(schedules);
@@ -322,6 +325,7 @@ const editReader = async (req, res) => {
     await userModel.updateOne(userFilter, userUpdate);
     res.json({message: 'Reader updated successfully'});
 }
+
 const approveUser = async (req, res) => {
     if(!req.body) {
         return res.status(422).json({message: 'req.body is null'});
@@ -374,7 +378,39 @@ const approveUser = async (req, res) => {
                 username
             });
 
-            return res.json({message: `Approve successful username: ${username} password: ${password}`});
+            // Find the user doc
+            const userDoc = await usrDetailsModel.findOne({ _id });
+
+            const fullName = userDoc.middleName? `${userDoc.firstName} ${userDoc.middleName} ${userDoc.lastName}`: `${userDoc.firstName} ${userDoc.lastName}`
+            const email = userDoc.email;
+            
+            // Send mail to the user 
+            const nodemailer = require('nodemailer');
+            const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.GMAIL_EMAIL,
+                pass: process.env.GMAIL_PASSWORD
+            }
+            });
+
+            const mailData = {
+                to: email,
+                subject: 'WaveBilling Password Reset OTP',
+                text: `Hi ${fullName}, your request for account has been approved. Your credentials are: ${userDoc.firstName} ${userDoc.middleName} ${userDoc.lastName}. \n Please consider changing password.`
+            }
+            transporter.sendMail(mailData, (err, info) => {
+                if(err) {
+                    console.log('Error occurred: ' + err);
+                    res.status(500).json({ message: 'Mail sending failed: ' + err })
+                    return;
+                }
+                console.log('Successful ' + info.response);
+                return res.json({ message: 'Mail sent successfully.' });
+            })
+            
+
+            return res.json({message: `Approve successful`});
         }
         catch(err) {
             console.log('Caught error: ' + err);
@@ -439,6 +475,37 @@ const approveUser = async (req, res) => {
                     username
                 });
             }
+
+            // Find the user doc
+            const userDoc = await companiesModel.findOne({ _id });
+
+            const fullName = userDoc.companyName;
+            const email = userDoc.email1;
+            
+            // Send mail to the user 
+            const nodemailer = require('nodemailer');
+            const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.GMAIL_EMAIL,
+                pass: process.env.GMAIL_PASSWORD
+            }
+            });
+
+            const mailData = {
+                to: email,
+                subject: 'WaveBilling Password Reset OTP',
+                text: `Hi ${fullName}, your request for account has been approved. Your credentials are: ${userDoc.firstName} ${userDoc.middleName} ${userDoc.lastName}. \n Please consider changing password.`
+            }
+            transporter.sendMail(mailData, (err, info) => {
+                if(err) {
+                    console.log('Error occurred: ' + err);
+                    res.status(500).json({ message: 'Mail sending failed: ' + err })
+                    return;
+                }
+                console.log('Successful ' + info.response);
+                return res.json({ message: 'Mail sent successfully.' });
+            })
             
             return res.json({message: `Approve successful username: ${username} password: ${password}`});
         } catch (err) {
@@ -447,6 +514,7 @@ const approveUser = async (req, res) => {
         }
     }
 }
+
 const editUser = async (req, res) => {
     const { userType, id  } = req.body;
     if(!userType || !id) return res.status(422).json({ message: 'userType and id are required.'});
