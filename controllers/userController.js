@@ -928,7 +928,9 @@ const getNotificationCount = async (req, res) => {
 const getNotifications = async (req, res) => {
     const { userId } = req.user;
     try {
-        const notifications = await notificationModel.find({ userId });
+        // Find all notifications
+        const notifications = await notificationModel.find({ userId }).sort({ date: -1 });
+        
         res.json({ notifications });
     } catch (err) {
         res.status(500).json( { message: 'Error occurred ' + err });
