@@ -931,6 +931,12 @@ const getNotifications = async (req, res) => {
         // Find all notifications
         const notifications = await notificationModel.find({ userId }).sort({ date: -1 });
         
+        // Update the unseen notifications to seen
+        await notificationModel.updateMany(
+            { userId, seen: false },
+            { $set: { seen: true } }
+        );
+
         res.json({ notifications });
     } catch (err) {
         res.status(500).json( { message: 'Error occurred ' + err });
