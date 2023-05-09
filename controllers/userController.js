@@ -336,6 +336,30 @@ const sendOtp = async (req, res) => {
         return res.status(422).json({ message: 'userName or email is required' });
     }
 
+    async function isValidEmail() {
+        userDoc = await usrDetailsModel.findOne({
+            email
+        });
+        if(userDoc) return true;
+
+        userDoc = await companiesModel.findOne({
+            email1: email
+        });
+        if(userDoc) return true;
+
+        userDoc = await meterReaderModel.findOne({
+            email
+        });
+        if(userDoc) return true;
+
+        userDoc = await adminDetailsModel.findOne({
+            email
+        });
+        if(userDoc) return true;
+
+        return false;
+    }
+    
     // If api is called by passing userName
     if(userName) {
         // Find the login doc of the user in users collection
@@ -380,33 +404,8 @@ const sendOtp = async (req, res) => {
         if(!email) return res.status(404).json({ message: 'No email found' });
 
     } else {        
-        let userDoc;
-        // Find the user doc of the user
-        if(userRole == "individualConsumer"){
-            userDoc = await usrDetailsModel.findOne({
-                email
-            });
-            if(!userDoc) return res.status(404).json({ message: 'No user doc found' });
-
-        } else if(userRole == "companyConsumer"){
-            userDoc = await companiesModel.findOne({
-                email1: email
-            });
-            if(!userDoc) return res.status(404).json({ message: 'No user doc found' });
-
-        } else if(userRole == "reader") {
-            userDoc = await meterReaderModel.findOne({
-                email
-            });
-            if(!userDoc) return res.status(404).json({ message: 'No user doc found' });
-
-        } else {
-            userDoc = await adminDetailsModel.findOne({
-                email
-            });
-            if(!userDoc) return res.status(404).json({ message: 'No user doc found' });
-
-        }
+        let isValidEmail = isValidEmail();
+        if(!isValidEmail) res.status(422).json({ message: 'No user with such email' });
         
     }
 
@@ -417,7 +416,7 @@ const sendOtp = async (req, res) => {
 
     if(alreadySent) {
         const currentTimestamp = new Date().getTime();
-        const otpExpiration = new Date(alreadySent.otpExpiration).getTime();
+        const otpExpiration = alreadySent.otpExpiration.getTime();
         console.log(currentTimestamp);
         console.log(otpExpiration);
         console.log(currentTimestamp <= otpExpiration);
@@ -450,15 +449,16 @@ const sendOtp = async (req, res) => {
         subject: 'WaveBilling Password Reset OTP',
         text: 'Please use this OTP(One Time Password) to reset your password.\n Your OTP is: ' + otp.otpPin
     }
-    transporter.sendMail(mailData, (err, info) => {
-        if(err) {
-            console.log('Error occurred: ' + err);
-            res.status(500).json({ message: 'OTP sending failed: ' + err })
-            return;
-        }
-        console.log('Successful ' + info.response);
-        return res.json({ message: 'OTP has been sent successfully.' });
-    })
+    // transporter.sendMail(mailData, (err, info) => {
+    //     if(err) {
+    //         console.log('Error occurred: ' + err);
+    //         res.status(500).json({ message: 'OTP sending failed: ' + err })
+    //         return;
+    //     }
+    //     console.log('Successful ' + info.response);
+    //     return res.json({ message: 'OTP has been sent successfully.' });
+    // })
+    res.send('done');
 
 }
 
