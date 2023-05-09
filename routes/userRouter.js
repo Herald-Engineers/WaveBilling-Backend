@@ -1,5 +1,5 @@
 const express = require('express');
-const { login, registerCompany, registerUser, sendOtp, contactWavebilling, submitIssue, fetchMyBills, payBill, fetchMyReceipts, fetchReport, fetchBillDetails, fetchTotalPayment, myAdvancePayment,fetchProfileInfo, editProfileInfo, verifyOtp, fetchReceiptDetails } = require('../controllers/userController');
+const { login, registerCompany, registerUser, sendOtp, contactWavebilling, submitIssue, fetchMyBills, payBill, fetchMyReceipts, fetchReport, fetchBillDetails, fetchTotalPayment, myAdvancePayment,fetchProfileInfo, editProfileInfo, verifyOtp, fetchReceiptDetails, getNotificationCount, getNotifications } = require('../controllers/userController');
 const userRouter = express.Router();
 const authenticateToken = require('../middlewares/authenticateToken');
 
@@ -25,5 +25,7 @@ userRouter.get('/get-report', authenticateToken, fetchReport);
 userRouter.get('/get-total-payment', authenticateToken, fetchTotalPayment);
 userRouter.get('/my-advance-payment', authenticateToken, myAdvancePayment);
 userRouter.get('/fetch-profile-info', authenticateToken, fetchProfileInfo);
+userRouter.get('/get-notification-count', authenticateToken, getNotificationCount);
+userRouter.get('/get-notifications', authenticateToken, getNotifications);
 
 module.exports = userRouter;

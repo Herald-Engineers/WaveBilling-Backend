@@ -14,6 +14,7 @@ const bcrypt = require('bcrypt');
 const nodemailer = require('nodemailer');
 const adminDetailsModel = require('../models/adminDetailsModel');
 const otpModel = require('../models/otpModel');
+const notificationModel = require('../models/notificationModel');
 
 // Cloudinary configuration 
 const cloudinary = require('cloudinary').v2;
@@ -913,6 +914,27 @@ const fetchProfileInfo = async (req, res) => {
     
 }
 
+const getNotificationCount = async (req, res) => {
+    const { userId } = req.user;
+    try {
+        const arr = await notificationModel.find({ userId, seen: false });
+        const count = arr.length;
+        res.json({ count });
+    } catch (err) {
+        res.status(500).json( { message: 'Error occurred ' + err });
+    }
+}
+
+const getNotifications = async (req, res) => {
+    const { userId } = req.user;
+    try {
+        const notifications = await notificationModel.find({ userId });
+        res.json({ notifications });
+    } catch (err) {
+        res.status(500).json( { message: 'Error occurred ' + err });
+    }
+}
+
 
 
 // UPDATE ==========================================================================================================================
@@ -1001,4 +1023,4 @@ const editProfileInfo = async (req, res) => {
     }
 }
 
-module.exports = { login, registerCompany, registerUser, sendOtp, contactWavebilling, submitIssue, fetchMyBills, payBill, fetchMyReceipts, fetchReport, fetchBillDetails, fetchTotalPayment, myAdvancePayment, fetchProfileInfo, editProfileInfo, verifyOtp, fetchReceiptDetails }; 
+module.exports = { login, registerCompany, registerUser, sendOtp, contactWavebilling, submitIssue, fetchMyBills, payBill, fetchMyReceipts, fetchReport, fetchBillDetails, fetchTotalPayment, myAdvancePayment, fetchProfileInfo, editProfileInfo, verifyOtp, fetchReceiptDetails, getNotificationCount, getNotifications }; 
