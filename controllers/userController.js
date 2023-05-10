@@ -406,7 +406,7 @@ const sendOtp = async (req, res) => {
 
     } else {        
         let isValidEmail = await isValidEmail();
-        if(!isValidEmail) res.status(422).json({ message: 'No user with such email' });
+        if(!isValidEmail) return res.status(422).json({ message: 'No user with such email' });
         
     }
 
