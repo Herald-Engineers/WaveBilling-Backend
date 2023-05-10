@@ -646,6 +646,18 @@ const submitIssue = async (req, res) => {
             subject,
             issue
         });
+
+        // Add notification to the admin
+        const adminList = await userModel.find({ userRole: 'admin' });
+        await Promise.all(adminList.map(async (admin) => {
+            const userId = admin.userId;
+            await notificationModel.create({
+                userId,
+                date: new Date(),
+                body: `New Issue raised by ${userFullName}.`
+            })
+        }));
+        
         res.json({ message: 'Successfully raised issue with subject: ' + subject });
 
     } else if(req.user.userRole === 'individualConsumer') {
@@ -660,6 +672,18 @@ const submitIssue = async (req, res) => {
             subject,
             issue
         });
+
+        // Add notification to the admin
+        const adminList = await userModel.find({ userRole: 'admin' });
+        await Promise.all(adminList.map(async (admin) => {
+            const userId = admin.userId;
+            await notificationModel.create({
+                userId,
+                date: new Date(),
+                body: `New Issue raised by ${userFullName}.`
+            })
+        }));
+
         res.json({ message: 'Successfully raised issue with subject: ' + subject });
 
     }
