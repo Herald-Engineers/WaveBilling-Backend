@@ -10,6 +10,7 @@ const companiesModel = require('../models/companiesModel');
 const meterModel = require('../models/meterModel');
 const issueModel = require('../models/issueModel');
 const receiptModel = require('../models/receiptModel');
+const notificationModel = require('../models/notificationModel');
 const advancePaymentModel = require('../models/advancePaymentModel');
 
 const bcrypt = require('bcrypt');
@@ -99,7 +100,19 @@ const addSchedule = async (req, res) => {
             shift,
             assignedTo: findReader.fullName,
             readerId: findReader._id
+        });
+
+        // Add notification to the reader
+        // Get the reader's userId
+        const loginDoc = await userModel.findById(findReader.loginId);
+        const userId = loginDoc.userId;
+        
+        await notificationModel.create({
+            userId,
+            date: new Date(),
+            body: 'New schedule available.'
         })
+
         res.status(201).json({message: 'Scheduled successfully.'});
     } catch(err) {
         console.log(err);
