@@ -396,8 +396,8 @@ const approveUser = async (req, res) => {
 
             const mailData = {
                 to: email,
-                subject: 'WaveBilling Password Reset OTP',
-                text: `Hi ${fullName}, your request for account has been approved. Your credentials are: ${userDoc.firstName} ${userDoc.middleName} ${userDoc.lastName}. \n Please consider changing password.`
+                subject: 'WaveBilling Account Approved',
+                text: `Hi ${fullName}, your request for account has been approved. Your credentials are: \nUsername: ${username} \nPassword: ${password}. \n Please consider changing password.`
             }
             transporter.sendMail(mailData, (err, info) => {
                 if(err) {
@@ -410,7 +410,7 @@ const approveUser = async (req, res) => {
             })
             
 
-            return res.json({message: `Approve successful`});
+            return res.json({message: `Approve successful.`});
         }
         catch(err) {
             console.log('Caught error: ' + err);
@@ -494,8 +494,8 @@ const approveUser = async (req, res) => {
 
             const mailData = {
                 to: email,
-                subject: 'WaveBilling Password Reset OTP',
-                text: `Hi ${fullName}, your request for account has been approved. Your credentials are: ${userDoc.firstName} ${userDoc.middleName} ${userDoc.lastName}. \n Please consider changing password.`
+                subject: 'WaveBilling Account Approved',
+                text: `Hi ${fullName}, your request for account has been approved. Your credentials are: \nUsername: ${username} \nPassword: ${password}. \n Please consider changing password.`
             }
             transporter.sendMail(mailData, (err, info) => {
                 if(err) {
@@ -507,7 +507,7 @@ const approveUser = async (req, res) => {
                 return res.json({ message: 'Mail sent successfully.' });
             })
             
-            return res.json({message: `Approve successful username: ${username} password: ${password}`});
+            return res.json({message: `Approve successful.`});
         } catch (err) {
             console.log('Caught error: ' + err);
             res.status(500).json({message: 'Error occurred ' + err});
